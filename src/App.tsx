@@ -38,24 +38,26 @@ function App() {
   }
 
   return (
-    <SubscriptionProvider>
-      <Router>
-        <div className="min-h-screen bg-[#1E1E1E]">
-          <RoutesComponent>
-            <Route 
-              path="/" 
-              element={!session ? <LandingPage /> : <Navigate to="/dashboard" />} 
-            />
-            <Route 
-              path="/dashboard" 
-              element={session ? <Dashboard /> : <Navigate to="/" />} 
-            />
-            <Route path="/learn-more" element={<LearnMore />} />
-          </RoutesComponent>
-        </div>
-      </Router>
-    </SubscriptionProvider>
-    <Analytics />
+    <>
+      <SubscriptionProvider>
+        <Router>
+          <div className="min-h-screen bg-[#1E1E1E]">
+            <RoutesComponent>
+              <Route 
+                path="/" 
+                element={!session ? <LandingPage /> : <Navigate to="/dashboard" />} 
+              />
+              <Route 
+                path="/dashboard" 
+                element={session ? <Dashboard /> : <Navigate to="/" />} 
+              />
+              <Route path="/learn-more" element={<LearnMore />} />
+            </RoutesComponent>
+          </div>
+        </Router>
+      </SubscriptionProvider>
+      <Analytics />
+    </>
   );
 }
 
