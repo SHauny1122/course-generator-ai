@@ -17,6 +17,7 @@
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.48.1",
     "@tailwindcss/typography": "^0.5.16",
+    "@vercel/analytics": "^1.5.0",
     "docx": "^9.2.0",
     "framer-motion": "^12.4.3",
     "html-to-text": "^9.0.5",

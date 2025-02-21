@@ -6,6 +6,7 @@ import LearnMore from './components/LearnMore';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -37,8 +38,8 @@ function App() {
   }
 
   return (
-    <Router>
-      <SubscriptionProvider>
+    <SubscriptionProvider>
+      <Router>
         <div className="min-h-screen bg-[#1E1E1E]">
           <RoutesComponent>
             <Route 
@@ -52,8 +53,9 @@ function App() {
             <Route path="/learn-more" element={<LearnMore />} />
           </RoutesComponent>
         </div>
-      </SubscriptionProvider>
-    </Router>
+      </Router>
+      <Analytics />
+    </SubscriptionProvider>
   );
 }
 
