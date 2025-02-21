@@ -99,6 +99,7 @@ const PricingCard = ({ tier, price, features, popular, onAction, actionText }: a
 
 const LandingPage = () => {
   const [showAuth, setShowAuth] = useState(false);
+  const [showLearnMore, setShowLearnMore] = useState(false);
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
