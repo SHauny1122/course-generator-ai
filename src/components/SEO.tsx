@@ -8,8 +8,8 @@ interface SEOProps {
 }
 
 const SEO = ({ 
-  title = 'Course Generator AI - Create Custom Courses Instantly',
-  description = 'Generate custom courses, quizzes, and lessons instantly with AI. Perfect for educators, trainers, and content creators.',
+  title = 'Course Generator AI - Create Courses with GPT-4 | Free to Start',
+  description = 'Generate professional courses, lessons, and quizzes instantly with GPT-4 AI. Start free, upgrade to Pro for unlimited content. Perfect for educators and creators.',
   image = '/og-image.png',
   url = 'https://coursegeneratorai.online'
 }: SEOProps) => {
@@ -30,8 +30,10 @@ const SEO = ({
     updateMetaTag('twitter:description', description);
     updateMetaTag('twitter:image', image);
     updateMetaTag('robots', 'index, follow');
-    updateMetaTag('keywords', 'course generator, AI education, online learning, quiz maker, lesson planner, education technology, AI teaching assistant, custom courses');
+    updateMetaTag('keywords', 'GPT-4 course generator, AI education, online course creator, quiz generator, lesson planner, education technology, AI teaching assistant, custom courses, free course generator');
     updateMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+    updateMetaTag('author', 'Course Generator AI');
+    updateMetaTag('application-name', 'Course Generator AI');
 
     // Update canonical link
     let canonicalElement = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
