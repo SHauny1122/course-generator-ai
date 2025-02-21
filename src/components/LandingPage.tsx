@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import Auth from './Auth';
 import LearnMore from './LearnMore';
 import '../styles/animations.css';
@@ -103,7 +103,6 @@ const LandingPage = () => {
   const { scrollYProgress } = useScroll();
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.5]);
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-  const ref = useRef(null);
 
   const features = [
     {

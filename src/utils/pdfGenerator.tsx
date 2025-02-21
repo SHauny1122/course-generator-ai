@@ -1,6 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, pdf, Font } from '@react-pdf/renderer';
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 
 // Register fonts
 Font.register({

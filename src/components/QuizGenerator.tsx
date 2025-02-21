@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { generateQuiz } from '../utils/openai';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { supabase } from '../lib/supabaseClient';
-import { QuizStructure } from '../types/schemas';
+import LoadingSpinner from './LoadingSpinner';
 
 interface Props {
   onClose: () => void;
@@ -89,7 +89,7 @@ const QuizGenerator = ({ onClose, onSuccess, refreshQuizzes }: Props) => {
         
         {generating ? (
           <div className="flex flex-col items-center justify-center p-8">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <LoadingSpinner />
             <p className="mt-4 text-white">Generating quiz content...</p>
           </div>
         ) : (

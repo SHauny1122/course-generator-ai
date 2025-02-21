@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, UnderlineType, AlignmentType, Bullet } from 'docx';
+import { Document, Paragraph, HeadingLevel, AlignmentType, Packer } from 'docx';
 
 const cleanText = (text: string): string => {
   return text
