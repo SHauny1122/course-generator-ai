@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+import { useEffect } from 'react';
 
 interface SEOProps {
   title?: string;
@@ -10,36 +10,61 @@ interface SEOProps {
 const SEO = ({ 
   title = 'Course Generator AI - Create Custom Courses Instantly',
   description = 'Generate custom courses, quizzes, and lessons instantly with AI. Perfect for educators, trainers, and content creators.',
-  image = '/og-image.png', // We'll create this later
+  image = '/og-image.png',
   url = 'https://coursegeneratorai.online'
 }: SEOProps) => {
-  return (
-    <Helmet>
-      {/* Basic meta tags */}
-      <title>{title}</title>
-      <meta name="description" content={description} />
-      
-      {/* Open Graph / Facebook */}
-      <meta property="og:type" content="website" />
-      <meta property="og:url" content={url} />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
+  useEffect(() => {
+    // Update the document title
+    document.title = title;
 
-      {/* Twitter */}
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:url" content={url} />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
+    // Update meta tags
+    updateMetaTag('description', description);
+    updateMetaTag('og:type', 'website');
+    updateMetaTag('og:url', url);
+    updateMetaTag('og:title', title);
+    updateMetaTag('og:description', description);
+    updateMetaTag('og:image', image);
+    updateMetaTag('twitter:card', 'summary_large_image');
+    updateMetaTag('twitter:url', url);
+    updateMetaTag('twitter:title', title);
+    updateMetaTag('twitter:description', description);
+    updateMetaTag('twitter:image', image);
+    updateMetaTag('robots', 'index, follow');
+    updateMetaTag('keywords', 'course generator, AI education, online learning, quiz maker, lesson planner, education technology, AI teaching assistant, custom courses');
+    updateMetaTag('viewport', 'width=device-width, initial-scale=1.0');
 
-      {/* Additional SEO tags */}
-      <meta name="robots" content="index, follow" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta name="keywords" content="course generator, AI education, online learning, quiz maker, lesson planner, education technology, AI teaching assistant, custom courses" />
-      <link rel="canonical" href={url} />
-    </Helmet>
-  );
+    // Update canonical link
+    let canonicalElement = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (!canonicalElement) {
+      canonicalElement = document.createElement('link');
+      canonicalElement.rel = 'canonical';
+      document.head.appendChild(canonicalElement);
+    }
+    canonicalElement.href = url;
+  }, [title, description, image, url]);
+
+  return null;
 };
+
+function updateMetaTag(name: string, content: string) {
+  let element = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+  if (!element) {
+    element = document.createElement('meta');
+    element.name = name;
+    document.head.appendChild(element);
+  }
+  element.content = content;
+
+  // Also update property meta tags for Open Graph
+  if (name.startsWith('og:')) {
+    let propertyElement = document.querySelector(`meta[property="${name}"]`) as HTMLMetaElement;
+    if (!propertyElement) {
+      propertyElement = document.createElement('meta');
+      propertyElement.setAttribute('property', name);
+      document.head.appendChild(propertyElement);
+    }
+    propertyElement.content = content;
+  }
+}
 
 export default SEO;
