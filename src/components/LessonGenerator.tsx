@@ -4,66 +4,117 @@ import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabaseClient';
 import { generateLesson } from '../utils/openai';
 import { PDFDownloadButton } from '../utils/pdfGenerator';
+import LoadingSpinner from './LoadingSpinner';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 
 interface LessonGeneratorProps {
   moduleTitle: string;
   lessonTitle: string;
   onClose: () => void;
-  onSave?: () => void;
+  refreshLessons: () => void;
 }
 
-export default function LessonGenerator({ moduleTitle, lessonTitle, onClose, onSave }: LessonGeneratorProps) {
+export default function LessonGenerator({ moduleTitle, lessonTitle, onClose, refreshLessons }: LessonGeneratorProps) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Generate lesson content when component mounts
-  useEffect(() => {
-    const generateContent = async () => {
-      try {
-        setLoading(true);
-        const lessonContent = await generateLesson(moduleTitle, lessonTitle);
-        setContent(lessonContent || '');
-      } catch (error) {
-        console.error('Error generating lesson:', error);
-        setError('Failed to generate lesson content. Please try again.');
-      } finally {
-        setLoading(false);
+  const { canUse, incrementUsage } = useSubscriptionContext();
+
+  const handleGenerateLesson = async () => {
+    if (!moduleTitle.trim() || !lessonTitle.trim()) {
+      setError('Please enter both module and lesson titles');
+      return;
+    }
+
+    if (!canUse('lessons')) {
+      setError('You have reached your lesson limit. Please upgrade your plan.');
+      return;
+    }
+
+    if (!canUse('tokens')) {
+      setError('You have reached your token limit. Please upgrade your plan to continue generating content.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+      setSaveSuccess(false);
+
+      const lessonContent = await generateLesson(moduleTitle, lessonTitle);
+      if (!lessonContent) {
+        throw new Error('Failed to generate lesson content');
       }
-    };
-    generateContent();
-  }, [moduleTitle, lessonTitle]);
+
+      // Format the lesson content as markdown
+      const markdownContent = `
+# ${lessonTitle}
+
+## Learning Objectives
+${lessonContent.objectives.map(obj => `- ${obj}`).join('\n')}
+
+## Key Concepts
+${lessonContent.keyConcepts.map(concept => `- ${concept}`).join('\n')}
+
+## Explanation
+${lessonContent.explanation}
+
+## Examples
+${lessonContent.examples.map((example, index) => `### Example ${index + 1}\n${example}`).join('\n\n')}
+
+## Exercises
+${lessonContent.exercises.map((exercise, index) => `
+### Exercise ${index + 1}
+${exercise.description}
+${exercise.solution ? `\n**Solution:**\n${exercise.solution}` : ''}`).join('\n\n')}
+
+## Summary
+${lessonContent.summary}
+`;
+
+      setContent(markdownContent);
+    } catch (error) {
+      console.error('Error generating lesson:', error);
+      setError('Failed to generate lesson content. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
       setLoading(true);
+      setError('');
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      const { error } = await supabase
+      // Increment lesson usage before saving
+      await incrementUsage('lessons');
+
+      const { error: lessonError } = await supabase
         .from('lessons')
-        .insert([
-          {
-            user_id: user.id,
-            module_title: moduleTitle,
-            lesson_title: lessonTitle,
-            content: content
-          }
-        ]);
+        .insert({
+          user_id: user.id,
+          module_title: moduleTitle,
+          lesson_title: lessonTitle,
+          content: content
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (lessonError) throw lessonError;
+
       setSaveSuccess(true);
-      
-      // Call onSave callback if provided
-      if (onSave) {
-        onSave();
-      }
-
       setTimeout(() => {
         setSaveSuccess(false);
-        onClose();
       }, 2000);
+
+      // Refresh lessons list and close
+      refreshLessons();
+      onClose();
     } catch (error) {
       console.error('Error saving lesson:', error);
       setError('Failed to save lesson. Please try again.');
@@ -72,80 +123,62 @@ export default function LessonGenerator({ moduleTitle, lessonTitle, onClose, onS
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(content);
-  };
+  useEffect(() => {
+    handleGenerateLesson();
+  }, [moduleTitle, lessonTitle]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-[#1a1a1a] rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-white">{lessonTitle}</h2>
-            <p className="text-gray-400">{moduleTitle}</p>
-          </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    >
+      <div className="bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-white">{lessonTitle}</h2>
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="text-gray-400 hover:text-white"
           >
             Close
           </button>
         </div>
 
         {loading ? (
-          <div className="text-center py-8">
-            <div className="text-white mb-2">Generating lesson content...</div>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
+          <div className="flex justify-center items-center min-h-[200px]">
+            <LoadingSpinner text="Generating lesson content..." />
           </div>
         ) : error ? (
-          <div className="text-red-500 mt-4">{error}</div>
+          <div className="text-red-500 text-center">{error}</div>
         ) : (
-          <div className="prose prose-invert max-w-none">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-        )}
+          <>
+            <div className="prose prose-invert max-w-none">
+              <ReactMarkdown>{content}</ReactMarkdown>
+            </div>
 
-        <div className="mt-6 flex justify-end gap-4">
-          <button
-            onClick={handleCopy}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Copy to Clipboard
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading || !content}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Saving...' : 'Save Lesson'}
-          </button>
-          {content && (
-            <PDFDownloadButton
-              type="lesson"
-              data={{
-                title: lessonTitle,
-                module: moduleTitle,
-                content: content,
-              }}
-              fileName={`${lessonTitle.toLowerCase().replace(/\s+/g, '-')}`}
-            />
-          )}
-        </div>
-
-        {saveSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            Lesson saved successfully!
-          </motion.div>
+            <div className="mt-6 flex justify-end space-x-4">
+              <PDFDownloadButton
+                content={content}
+                title={`${moduleTitle} - ${lessonTitle}`}
+              >
+                Download PDF
+              </PDFDownloadButton>
+              <button
+                onClick={handleSave}
+                disabled={loading}
+                className={`px-4 py-2 rounded ${
+                  saveSuccess
+                    ? 'bg-green-500'
+                    : 'bg-blue-500 hover:bg-blue-600'
+                } text-white font-medium transition-colors`}
+              >
+                {saveSuccess ? 'Saved!' : 'Save Lesson'}
+              </button>
+            </div>
+          </>
         )}
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }

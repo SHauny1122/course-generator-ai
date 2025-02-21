@@ -1,274 +1,201 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
-import { supabase } from '../lib/supabaseClient';
 import { generateQuiz } from '../utils/openai';
-import { PDFDownloadButton } from '../utils/pdfGenerator';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { supabase } from '../lib/supabaseClient';
+import { QuizStructure } from '../types/schemas';
 
-interface QuizGeneratorProps {
-  onClose?: () => void;
+interface Props {
+  onClose: () => void;
+  onSuccess: () => void;
+  refreshQuizzes: () => void;
 }
 
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  answer: string;
-}
-
-interface Quiz {
-  title: string;
-  difficulty: string;
-  questions: QuizQuestion[];
-}
-
-export default function QuizGenerator({ onClose }: QuizGeneratorProps) {
-  const [formData, setFormData] = useState({
-    topic: '',
-    difficulty: 'beginner',
-    questionTypes: {
-      mcq: 5,
-      fill: 2,
-      tf: 2,
-      short: 1
-    }
+const QuizGenerator = ({ onClose, onSuccess, refreshQuizzes }: Props) => {
+  const [topic, setTopic] = useState('');
+  const [difficulty, setDifficulty] = useState('beginner');
+  const [questionCounts, setQuestionCounts] = useState({
+    mcq: 0,
+    fill: 0,
+    tf: 10,
+    short: 0
   });
-  
-  const [quiz, setQuiz] = useState<Quiz | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+  const { canUse, incrementUsage } = useSubscriptionContext();
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!topic.trim()) {
+      setError('Please enter a topic');
+      return;
+    }
+
+    if (!canUse('quizzes')) {
+      setError('You have reached your monthly quiz limit. Please upgrade your plan.');
+      return;
+    }
+
+    if (!canUse('tokens')) {
+      setError('You have reached your token limit. Please upgrade your plan to continue generating content.');
+      return;
+    }
+
+    const totalQuestions = Object.values(questionCounts).reduce((a, b) => a + b, 0);
+    if (totalQuestions === 0) {
+      setError('Please specify at least one question type');
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError(null);
-      const generatedQuiz = await generateQuiz(
-        formData.topic,
-        formData.difficulty,
-        formData.questionTypes
-      );
-      setQuiz(generatedQuiz || null);
+      setGenerating(true);
+      setError('');
+
+      const quizStructure = await generateQuiz(topic, difficulty, questionCounts);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { error: quizError } = await supabase
+        .from('quizzes')
+        .insert({
+          topic,
+          difficulty,
+          content: JSON.stringify(quizStructure),
+          user_id: user.id,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (quizError) throw quizError;
+
+      await incrementUsage('quizzes');
+      refreshQuizzes();
+      onSuccess();
+      onClose();
     } catch (error) {
       console.error('Error generating quiz:', error);
       setError('Failed to generate quiz. Please try again.');
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
-  };
-
-  const handleSave = async () => {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { error } = await supabase
-        .from('quizzes')
-        .insert([
-          {
-            user_id: user.id,
-            topic: formData.topic,
-            difficulty: formData.difficulty,
-            content: quiz
-          }
-        ]);
-
-      if (error) throw error;
-      setSaveSuccess(true);
-      setTimeout(() => {
-        setSaveSuccess(false);
-        onClose?.();
-      }, 2000);
-    } catch (error) {
-      console.error('Error saving quiz:', error);
-      setError('Failed to save quiz. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(quiz ? JSON.stringify(quiz) : '');
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-white">Create New Quiz</h1>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            View Dashboard
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-6">
-        <div>
-          <label className="block text-gray-300 mb-2">Quiz Topic</label>
-          <input
-            type="text"
-            placeholder="e.g., Basic Algebra"
-            value={formData.topic}
-            onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-            className="w-full p-3 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-300 mb-2">Difficulty Level</label>
-          <select
-            value={formData.difficulty}
-            onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
-            className="w-full p-3 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-gray-300 mb-4">Question Types</label>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-gray-400 text-sm mb-1">Multiple Choice</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.questionTypes.mcq}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  questionTypes: {
-                    ...formData.questionTypes,
-                    mcq: parseInt(e.target.value) || 0
-                  }
-                })}
-                className="w-full p-2 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-1">Fill in the Blank</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.questionTypes.fill}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  questionTypes: {
-                    ...formData.questionTypes,
-                    fill: parseInt(e.target.value) || 0
-                  }
-                })}
-                className="w-full p-2 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-1">True/False</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.questionTypes.tf}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  questionTypes: {
-                    ...formData.questionTypes,
-                    tf: parseInt(e.target.value) || 0
-                  }
-                })}
-                className="w-full p-2 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-1">Short Answer</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                value={formData.questionTypes.short}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  questionTypes: {
-                    ...formData.questionTypes,
-                    short: parseInt(e.target.value) || 0
-                  }
-                })}
-                className="w-full p-2 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-4 text-white">Generate New Quiz</h2>
+        
+        {generating ? (
+          <div className="flex flex-col items-center justify-center p-8">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-white">Generating quiz content...</p>
           </div>
-        </div>
+        ) : (
+          <form onSubmit={handleGenerate} className="space-y-4">
+            <div>
+              <label className="block text-white mb-2">Topic:</label>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+                placeholder="e.g., Flutter development"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-white mb-2">Difficulty:</label>
+              <select
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
 
-        <button
-          onClick={handleGenerate}
-          disabled={loading || !formData.topic}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Generating Quiz...' : 'Generate Quiz'}
-        </button>
+            <div className="space-y-3">
+              <h3 className="text-white font-semibold">Question Types:</h3>
+              
+              <div>
+                <label className="block text-white mb-1">Multiple Choice:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={questionCounts.mcq}
+                  onChange={(e) => setQuestionCounts(prev => ({ ...prev, mcq: parseInt(e.target.value) || 0 }))}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                />
+              </div>
 
-        {error && (
-          <div className="text-red-500 mt-4">
-            {error}
-          </div>
-        )}
+              <div>
+                <label className="block text-white mb-1">Fill in the Blanks:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={questionCounts.fill}
+                  onChange={(e) => setQuestionCounts(prev => ({ ...prev, fill: parseInt(e.target.value) || 0 }))}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                />
+              </div>
 
-        {quiz && (
-          <div className="mt-8">
-            <div className="bg-[#252525] p-6 rounded-xl">
-              <div className="prose prose-invert max-w-none">
-                <ReactMarkdown>{JSON.stringify(quiz, null, 2)}</ReactMarkdown>
+              <div>
+                <label className="block text-white mb-1">True/False:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={questionCounts.tf}
+                  onChange={(e) => setQuestionCounts(prev => ({ ...prev, tf: parseInt(e.target.value) || 0 }))}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white mb-1">Short Answer:</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  value={questionCounts.short}
+                  onChange={(e) => setQuestionCounts(prev => ({ ...prev, short: parseInt(e.target.value) || 0 }))}
+                  className="w-full p-2 rounded bg-gray-700 text-white"
+                />
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-4">
-              <button
-                onClick={handleCopy}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Copy to Clipboard
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Save Quiz
-              </button>
-              {quiz && quiz.questions && quiz.questions.length > 0 && (
-                <PDFDownloadButton
-                  type="quiz"
-                  data={{
-                    title: quiz.title,
-                    difficulty: quiz.difficulty,
-                    questions: quiz.questions.map(q => ({
-                      question: q.question,
-                      options: q.options,
-                      answer: q.answer,
-                    })),
-                  }}
-                  fileName={`${quiz.title.toLowerCase().replace(/\s+/g, '-')}`}
-                />
-              )}
-            </div>
-          </div>
-        )}
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
 
-        {saveSuccess && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
-          >
-            Quiz saved successfully!
-          </motion.div>
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={generating}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {generating ? 'Generating...' : 'Generate'}
+              </button>
+            </div>
+          </form>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default QuizGenerator;

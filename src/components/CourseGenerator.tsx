@@ -1,243 +1,173 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { supabase } from '../lib/supabaseClient';
 import { generateCourseOutline } from '../utils/openai';
-import LessonGenerator from './LessonGenerator';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { supabase } from '../lib/supabaseClient';
+import LoadingSpinner from './LoadingSpinner';
 
-interface CourseGeneratorProps {
-  onClose?: () => void;
-  onSave?: () => void;
+interface Props {
+  onClose: () => void;
+  onSuccess: () => void;
+  refreshCourses: () => void;
 }
 
-export default function CourseGenerator({ onClose, onSave }: CourseGeneratorProps) {
-  const [formData, setFormData] = useState({
-    topic: '',
-    audience: '',
-    duration: ''
-  });
-  const [courseOutline, setCourseOutline] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [selectedLesson, setSelectedLesson] = useState({ title: '', module: '' });
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const { canUse, updateUsage, getLimits, subscription } = useSubscriptionContext();
-  const limits = getLimits();
+const CourseGenerator = ({ onClose, onSuccess, refreshCourses }: Props) => {
+  const [title, setTitle] = useState('');
+  const [topic, setTopic] = useState('');
+  const [audience, setAudience] = useState('beginner');
+  const [duration, setDuration] = useState('1 week');
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string>('');
+  const { canUse, incrementUsage } = useSubscriptionContext();
 
-  const generateCourse = async () => {
+  const handleGenerateCourse = async () => {
+    if (!title.trim()) {
+      setError('Please enter a course title');
+      return;
+    }
+
     if (!canUse('courses')) {
-      alert('You have reached your monthly course limit. Please upgrade your plan to create more courses.');
+      setError('You have reached your course limit. Please upgrade your plan.');
+      return;
+    }
+
+    if (!canUse('tokens')) {
+      setError('You have reached your token limit. Please upgrade your plan to continue generating content.');
       return;
     }
 
     try {
-      setLoading(true);
+      setGenerating(true);
       setError('');
-      const outline = await generateCourseOutline(
-        formData.topic,
-        formData.audience,
-        formData.duration
+
+      // Generate course outline
+      const courseStructure = await generateCourseOutline(
+        topic || title,
+        audience,
+        duration
       );
-      if (outline) {
-        setCourseOutline(outline);
-      } else {
-        throw new Error('No outline generated');
+
+      if (!courseStructure) {
+        throw new Error('Failed to generate course outline');
       }
+
+      // Create the course in Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { error: courseError } = await supabase
+        .from('courses')
+        .insert({
+          title: courseStructure.title,
+          content: JSON.stringify({
+            ...courseStructure,
+            topic,
+            targetAudience: audience,
+            courseDuration: duration
+          }),
+          user_id: user.id,
+          shared: false,
+        })
+        .select()
+        .single();
+
+      if (courseError) throw courseError;
+
+      await incrementUsage('courses');
+      onSuccess();
+      refreshCourses();
+      onClose();
     } catch (error) {
       console.error('Error generating course:', error);
       setError('Failed to generate course. Please try again.');
     } finally {
-      setLoading(false);
-      await updateUsage('courses');
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    generateCourse();
-  };
-
-  const handleSave = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setError('Please sign in to save courses');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('courses')
-        .insert({
-          user_id: user.id,
-          title: formData.topic,
-          content: courseOutline,
-          lessons: {}
-        });
-
-      if (error) throw error;
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error saving course:', error);
-      setError('Failed to save course. Please try again.');
-    }
-  };
-
-  // Function to process the markdown content and add buttons
-  const processMarkdown = (content: string) => {
-    const lines = content.split('\n');
-    let currentModule = '';
-    
-    return lines.map((line, index) => {
-      // Check for Week headers
-      if (line.match(/^Week \d+:/)) {
-        currentModule = line;
-        return <h3 key={index} className="text-xl font-semibold text-white mt-6 mb-3">{line}</h3>;
-      }
-      
-      // Check for Module headers
-      if (line.match(/^- Module \d+:/)) {
-        return <h4 key={index} className="text-lg font-semibold text-white mt-4 mb-2">{line}</h4>;
-      }
-      
-      // Check for bullet points that are actual lessons (not module titles)
-      if (line.trim().startsWith('- ') && !line.includes('Module') && !line.includes('Suggested Exercises')) {
-        const lessonTitle = line.trim().substring(2); // Remove the "- " prefix
-        return (
-          <div key={index} className="flex items-center justify-between py-2">
-            <p className="text-gray-300">{lessonTitle}</p>
-            <button
-              onClick={() => setSelectedLesson({ 
-                title: lessonTitle, 
-                module: currentModule.split(':')[0].trim() 
-              })}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors ml-4"
-            >
-              Generate Lesson
-            </button>
-          </div>
-        );
-      }
-      
-      // For all other lines, render normally
-      return <p key={index} className="text-gray-300">{line}</p>;
-    });
-  };
-
-  const refreshLessons = () => {
-    if (onSave) {
-      onSave();
+      setGenerating(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-white">Create New Course</h1>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            View Dashboard
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-6">
-        <div>
-          <label className="block text-gray-300 mb-2">Course Topic</label>
-          <input
-            type="text"
-            placeholder="e.g., Introduction to Python Programming"
-            value={formData.topic}
-            onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-            className="w-full p-3 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-300 mb-2">Target Audience</label>
-          <input
-            type="text"
-            placeholder="e.g., Complete beginners"
-            value={formData.audience}
-            onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-            className="w-full p-3 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-300 mb-2">Course Duration</label>
-          <input
-            type="text"
-            placeholder="e.g., 6 weeks"
-            value={formData.duration}
-            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-            className="w-full p-3 bg-[#252525] text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !canUse('courses')}
-          className={`w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 ${
-            !canUse('courses') ? 'bg-gray-400 cursor-not-allowed' : ''
-          }`}
-        >
-          {loading ? 'Generating Course Outline...' : 'Generate Course Outline'}
-        </button>
-
-        <div className="text-sm text-gray-500 mt-2">
-          {subscription && `${limits.maxCourses - subscription.courses_used} courses remaining this month`}
-        </div>
-
-        {error && (
-          <div className="text-red-500 mt-4">
-            {error}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md relative">
+        <h2 className="text-2xl font-bold mb-4 text-white">Generate New Course</h2>
+        
+        {generating ? (
+          <div className="absolute inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center">
+            <LoadingSpinner text="Generating course content..." />
           </div>
-        )}
-
-        {courseOutline && (
-          <div className="mt-8">
-            <div className="bg-[#252525] p-6 rounded-xl">
-              <div className="prose prose-invert max-w-none">
-                {processMarkdown(courseOutline)}
-              </div>
+        ) : (
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+            <div>
+              <label className="block text-white mb-2">Course Title:</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+                required
+                placeholder="e.g., Flutter development"
+              />
             </div>
-
-            <div className="mt-6 flex justify-end gap-4">
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            <div>
+              <label className="block text-white mb-2">Topic:</label>
+              <input
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+                placeholder="e.g., Flutter development"
+              />
+            </div>
+            <div>
+              <label className="block text-white mb-2">Target Audience:</label>
+              <select
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+                required
               >
-                Save Course
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-white mb-2">Duration:</label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full p-2 rounded bg-gray-700 text-white"
+                required
+              >
+                <option value="1 week">1 Week</option>
+                <option value="2 weeks">2 Weeks</option>
+                <option value="4 weeks">4 Weeks</option>
+                <option value="6 weeks">6 Weeks</option>
+                <option value="8 weeks">8 Weeks</option>
+                <option value="12 weeks">12 Weeks</option>
+              </select>
+            </div>
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={generating}
+                onClick={handleGenerateCourse}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {generating ? 'Generating...' : 'Generate'}
               </button>
             </div>
-          </div>
-        )}
-
-        {saveSuccess && (
-          <div className="fixed bottom-4 right-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg"
-            >
-              Course saved successfully!
-            </motion.div>
-          </div>
+            {error && <p className="text-red-500">{error}</p>}
+          </form>
         )}
       </div>
-
-      {selectedLesson.title && (
-        <LessonGenerator
-          moduleTitle={selectedLesson.module}
-          lessonTitle={selectedLesson.title}
-          onClose={() => setSelectedLesson({ title: '', module: '' })}
-          onSave={refreshLessons}
-        />
-      )}
     </div>
   );
-}
+};
+
+export default CourseGenerator;

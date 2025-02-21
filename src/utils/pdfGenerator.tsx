@@ -1,133 +1,150 @@
-import { Document, Page, Text, View, StyleSheet, PDFDownloadLink } from '@react-pdf/renderer';
-import { convert } from 'html-to-text';
+import { Document, Page, Text, View, StyleSheet, pdf, Font } from '@react-pdf/renderer';
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
+// Register fonts
+Font.register({
+  family: 'Roboto',
+  src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf'
+});
+
+// Create styles
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
-    backgroundColor: '#ffffff',
-    padding: 30,
+    backgroundColor: '#FFFFFF',
+    padding: 40,
+    fontFamily: 'Roboto',
+  },
+  section: {
+    margin: 10,
+    padding: 10,
   },
   title: {
     fontSize: 24,
     marginBottom: 20,
-    fontWeight: 'bold',
+    color: '#000000',
   },
   heading: {
     fontSize: 18,
-    marginBottom: 10,
     marginTop: 15,
-    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#000000',
   },
   subheading: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#666666',
+    fontSize: 16,
+    marginTop: 10,
+    marginBottom: 8,
+    color: '#000000',
   },
-  text: {
+  paragraph: {
     fontSize: 12,
-    marginBottom: 5,
     lineHeight: 1.5,
+    marginBottom: 10,
+    color: '#000000',
   },
-  section: {
-    marginBottom: 20,
-  },
-  question: {
-    marginBottom: 15,
-  },
-  questionNumber: {
-    fontWeight: 'bold',
-    marginRight: 5,
-  },
+  listItem: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    marginBottom: 5,
+    marginLeft: 15,
+    color: '#000000',
+  }
 });
 
-interface LessonPDFProps {
-  title: string;
-  module: string;
-  content: string;
-}
+const formatContent = (content: string): string => {
+  // Replace common markdown patterns with plain text
+  return content
+    .replace(/#{1,6}\s+/g, '') // Remove heading markers
+    .replace(/\*\*/g, '') // Remove bold markers
+    .replace(/\*/g, '') // Remove italic markers
+    .replace(/`/g, '') // Remove code markers
+    .replace(/\n\s*\n/g, '\n\n') // Normalize line breaks
+    .trim();
+};
 
-const LessonPDF = ({ title, module, content }: LessonPDFProps) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subheading}>Module: {module}</Text>
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.text}>
-          {convert(content, {
-            wordwrap: 130,
-            preserveNewlines: true,
-          })}
-        </Text>
-      </View>
-    </Page>
-  </Document>
-);
+const splitIntoSections = (content: string): string[] => {
+  return content.split(/\n{2,}/); // Split on double line breaks
+};
 
-interface QuizPDFProps {
-  title: string;
-  difficulty: string;
-  questions: Array<{
-    question: string;
-    options?: string[];
-    answer?: string;
-  }>;
-}
+// PDF Document component
+const PDFDocument = ({ title, content }: { title: string, content: string }) => {
+  const formattedContent = formatContent(content);
+  const sections = splitIntoSections(formattedContent);
 
-const QuizPDF = ({ title, difficulty, questions }: QuizPDFProps) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      <View style={styles.section}>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subheading}>Difficulty: {difficulty}</Text>
-      </View>
-      <View style={styles.section}>
-        {questions.map((q, index) => (
-          <View key={index} style={styles.question}>
-            <Text style={styles.text}>
-              <Text style={styles.questionNumber}>{index + 1}.</Text>
-              {q.question}
-            </Text>
-            {q.options && (
-              <View style={{ marginLeft: 20 }}>
-                {q.options.map((option, optIndex) => (
-                  <Text key={optIndex} style={styles.text}>
-                    {String.fromCharCode(65 + optIndex)}. {option}
-                  </Text>
-                ))}
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.section}>
+          <Text style={styles.title}>{title}</Text>
+          {sections.map((section, index) => {
+            const lines = section.split('\n');
+            return (
+              <View key={index} style={styles.section}>
+                {lines.map((line, lineIndex) => {
+                  if (line.startsWith('•') || line.startsWith('-')) {
+                    return (
+                      <Text key={lineIndex} style={styles.listItem}>
+                        {line.replace(/^[•-]\s*/, '• ')}
+                      </Text>
+                    );
+                  }
+                  if (line.length > 50) {
+                    return (
+                      <Text key={lineIndex} style={styles.paragraph}>
+                        {line}
+                      </Text>
+                    );
+                  }
+                  if (line.length > 30) {
+                    return (
+                      <Text key={lineIndex} style={styles.subheading}>
+                        {line}
+                      </Text>
+                    );
+                  }
+                  return (
+                    <Text key={lineIndex} style={styles.heading}>
+                      {line}
+                    </Text>
+                  );
+                })}
               </View>
-            )}
-            {q.answer && (
-              <Text style={[styles.text, { marginTop: 5, fontWeight: 'bold' }]}>
-                Answer: {q.answer}
-              </Text>
-            )}
-          </View>
-        ))}
-      </View>
-    </Page>
-  </Document>
-);
+            );
+          })}
+        </View>
+      </Page>
+    </Document>
+  );
+};
 
-export const PDFDownloadButton = ({ 
-  type, 
-  data, 
-  fileName 
-}: { 
-  type: 'lesson' | 'quiz';
-  data: LessonPDFProps | QuizPDFProps;
-  fileName: string;
-}) => (
-  <PDFDownloadLink
-    document={
-      type === 'lesson' 
-        ? <LessonPDF {...(data as LessonPDFProps)} />
-        : <QuizPDF {...(data as QuizPDFProps)} />
-    }
-    fileName={`${fileName}.pdf`}
-    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+export const generatePDF = async (content: string, title: string): Promise<void> => {
+  try {
+    const blob = await pdf(<PDFDocument title={title} content={content} />).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    throw error;
+  }
+};
+
+// Export the PDFDownloadLink component for direct use in components
+export const PDFDownloadButton: React.FC<{
+  content: string;
+  title: string;
+  children: React.ReactNode;
+}> = ({ content, title, children }) => (
+  <button
+    onClick={() => generatePDF(content, title)}
+    className="inline-flex items-center"
   >
-    {({ loading }) => (loading ? 'Generating PDF...' : 'Download PDF')}
-  </PDFDownloadLink>
+    {children}
+  </button>
 );

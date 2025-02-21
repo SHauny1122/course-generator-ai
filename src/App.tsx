@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import LearnMore from './components/LearnMore';
-import { supabase, checkAuthAndAccess } from './lib/supabaseClient';
+import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 
@@ -12,42 +12,18 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
     // Get initial session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (mounted) {
-          setSession(session);
-        }
-      } catch (error) {
-        console.error('Error checking auth:', error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-
-      console.log('Auth state change in App:', { 
-        hasSession: !!session,
-        userId: session?.user?.id 
-      });
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);

@@ -11,6 +11,7 @@ export interface Subscription {
   courses_used: number;
   quizzes_used: number;
   tokens_used: number;
+  lessons_used: number;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -22,6 +23,7 @@ export interface SubscriptionLimits {
   maxCourses: number;
   maxQuizzes: number;
   maxTokens: number;
+  maxLessons: number;
   hasTeamSharing: boolean;
   hasCustomBranding: boolean;
   hasAdvancedAnalytics: boolean;
@@ -33,6 +35,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     maxCourses: 5,
     maxQuizzes: 10,
     maxTokens: 2000,
+    maxLessons: 15,
     hasTeamSharing: false,
     hasCustomBranding: false,
     hasAdvancedAnalytics: false,
@@ -42,6 +45,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     maxCourses: 15,
     maxQuizzes: 30,
     maxTokens: 3000,
+    maxLessons: 45,
     hasTeamSharing: false,
     hasCustomBranding: false,
     hasAdvancedAnalytics: false,
@@ -51,6 +55,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     maxCourses: Infinity,
     maxQuizzes: Infinity,
     maxTokens: 4000,
+    maxLessons: Infinity,
     hasTeamSharing: true,
     hasCustomBranding: true,
     hasAdvancedAnalytics: true,
@@ -58,7 +63,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   },
 };
 
-type UsageType = 'courses' | 'quizzes' | 'tokens';
+type UsageType = 'courses' | 'quizzes' | 'tokens' | 'lessons';
 type UsageField = `${UsageType}_used`;
 
 export function useSubscription() {
@@ -79,6 +84,7 @@ export function useSubscription() {
           courses_used: 0,
           quizzes_used: 0,
           tokens_used: 0,
+          lessons_used: 0,
           last_reset: now.toISOString(),
         })
         .eq('id', sub.id);
@@ -89,6 +95,7 @@ export function useSubscription() {
           courses_used: 0,
           quizzes_used: 0,
           tokens_used: 0,
+          lessons_used: 0,
           last_reset: now.toISOString(),
         };
       }
@@ -129,6 +136,7 @@ export function useSubscription() {
             courses_used: 0,
             quizzes_used: 0,
             tokens_used: 0,
+            lessons_used: 0,
             active: true,
             last_reset: new Date().toISOString(),
           }])
@@ -158,12 +166,14 @@ export function useSubscription() {
       courses: subscription.courses_used,
       quizzes: subscription.quizzes_used,
       tokens: subscription.tokens_used,
+      lessons: subscription.lessons_used,
     };
     
     const maxValues = {
       courses: limits.maxCourses,
       quizzes: limits.maxQuizzes,
       tokens: limits.maxTokens,
+      lessons: limits.maxLessons,
     };
 
     return usage[type] < maxValues[type];

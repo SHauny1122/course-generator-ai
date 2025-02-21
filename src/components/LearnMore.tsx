@@ -46,7 +46,19 @@ const LearnMore = () => {
       return;
     }
 
-    // Create free subscription
+    // Check if user already has a subscription
+    const { data: existingSubscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (existingSubscription) {
+      navigate('/dashboard');
+      return;
+    }
+
+    // Create free subscription only if user doesn't have one
     const { error: subscriptionError } = await supabase
       .from('subscriptions')
       .insert([
@@ -276,7 +288,7 @@ const LearnMore = () => {
           className="max-w-3xl mx-auto text-center"
         >
           <h2 className="text-3xl font-bold text-white mb-12">Frequently Asked Questions</h2>
-          <div className="space-y-8 text-left">
+          <div className="space-y-8 text-center">
             <div>
               <h3 className="text-xl font-semibold text-white mb-2">How does the course generator work?</h3>
               <p className="text-gray-400">Our AI analyzes your topic, audience, and duration requirements to create a structured course outline. It then generates detailed lesson content, complete with examples, exercises, and quizzes.</p>

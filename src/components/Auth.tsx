@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase, checkAuthAndAccess } from '../lib/supabaseClient';
+import { useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -16,59 +16,88 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
-  // Check initial auth state
-  useEffect(() => {
-    checkAuthAndAccess().then(({ session }) => {
-      if (session) {
-        navigate('/dashboard');
-      }
-    });
-  }, [navigate]);
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const { error } = isSignUp
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                selected_plan: selectedPlan || 'free'
-              }
+      if (isSignUp) {
+        // First, sign up the user
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              selected_plan: selectedPlan || 'free'
             }
-          })
-        : await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
+          }
+        });
 
-      if (error) throw error;
-      
-      if (!error && isSignUp) {
-        // Create initial subscription for new user
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { error: subError } = await supabase
-            .from('subscriptions')
-            .insert([
-              {
-                user_id: session.user.id,
-                tier: selectedPlan || 'free',
-                courses_used: 0,
-                quizzes_used: 0,
-                tokens_used: 0,
-                active: true
-              }
-            ]);
-          if (subError) throw subError;
+        if (signUpError) throw signUpError;
+        if (!data.user) throw new Error('No user data returned');
+
+        // Wait a moment for the auth session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Create free subscription for new users
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert([
+            {
+              user_id: data.user.id,
+              tier: selectedPlan || 'free',
+              courses_used: 0,
+              quizzes_used: 0,
+              tokens_used: 0,
+              active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+          ])
+          .select()
+          .single();
+
+        if (subscriptionError) {
+          console.error('Error creating subscription:', subscriptionError);
+          // If we fail to create subscription, sign out and show error
+          await supabase.auth.signOut();
+          throw new Error('Failed to create subscription. Please try again.');
         }
+
+        // Verify the subscription was created and is active
+        const { data: verifyData, error: verifyError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .eq('active', true)
+          .single();
+
+        if (verifyError || !verifyData) {
+          console.error('Error verifying subscription:', verifyError);
+          await supabase.auth.signOut();
+          throw new Error('Failed to verify subscription. Please try again.');
+        }
+
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (signInError) throw signInError;
       }
+
+      // If we get here, auth was successful
+      if (onClose) onClose();
+      
+      // Navigate to dashboard after successful auth
+      navigate('/dashboard');
     } catch (error) {
+      console.error('Auth error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
+      // If there's an error, sign out the user to prevent a bad state
+      await supabase.auth.signOut();
     } finally {
       setLoading(false);
     }
