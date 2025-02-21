@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Auth from './Auth';
 import LearnMore from './LearnMore';
@@ -7,9 +7,8 @@ import SEO from './SEO';
 
 const FeatureCard = ({ title, description, index }: { title: string; description: string; index: number }) => {
   const variants = {
-    hidden: { opacity: 0, y: 50 },
+    hidden: { y: 50 },
     visible: (i: number) => ({
-      opacity: 1,
       y: 0,
       transition: {
         delay: i * 0.2,
@@ -48,8 +47,8 @@ const FeatureCard = ({ title, description, index }: { title: string; description
 const PricingCard = ({ tier, price, features, popular, onAction, actionText }: any) => {
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.9 }}
-      whileInView={{ opacity: 1, scale: 1 }}
+      initial={{ scale: 0.9 }}
+      whileInView={{ scale: 1 }}
       viewport={{ once: true }}
       whileHover={{ 
         y: -10,
@@ -73,8 +72,8 @@ const PricingCard = ({ tier, price, features, popular, onAction, actionText }: a
         {features.map((feature: string, index: number) => (
           <motion.li 
             key={index}
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ x: -20 }}
+            whileInView={{ x: 0 }}
             transition={{ delay: index * 0.1 }}
             className="text-gray-400 flex items-center"
           >
@@ -100,8 +99,6 @@ const PricingCard = ({ tier, price, features, popular, onAction, actionText }: a
 const LandingPage = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(false);
-  const { scrollYProgress } = useScroll();
-  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
 
   const features = [
     {
@@ -159,20 +156,20 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-[#1E1E1E] text-white">
       <SEO />
-      <motion.div style={{ opacity }} className="relative">
+      <div className="relative">
         {/* Hero Section */}
         <div className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
             <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
               className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 text-transparent bg-clip-text"
             >
               Create Unlimited Courses with GPT-4 AI
             </motion.h1>
             <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
               transition={{ delay: 0.2 }}
               className="text-xl text-gray-400 mb-8 leading-relaxed"
             >
@@ -180,8 +177,8 @@ const LandingPage = () => {
               Powered by GPT-4, our AI creates engaging content in seconds. Start free, upgrade for unlimited access.
             </motion.p>
             <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ y: 20 }}
+              animate={{ y: 0 }}
               transition={{ delay: 0.4 }}
               className="flex gap-6 justify-center mb-24"
             >
@@ -209,8 +206,8 @@ const LandingPage = () => {
         <div className="py-20">
           <div className="max-w-6xl mx-auto px-6">
             <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ y: 20 }}
+              whileInView={{ y: 0 }}
               viewport={{ once: true }}
               className="text-4xl font-bold text-white text-center mb-12"
             >
@@ -228,8 +225,8 @@ const LandingPage = () => {
         <div className="py-20 bg-[#252525]">
           <div className="max-w-6xl mx-auto px-6">
             <motion.h2 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ y: 20 }}
+              whileInView={{ y: 0 }}
               viewport={{ once: true }}
               className="text-4xl font-bold text-white text-center mb-12"
             >
@@ -242,7 +239,7 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
