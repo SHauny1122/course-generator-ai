@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Auth from './Auth';
 import LearnMore from './LearnMore';
 import '../styles/animations.css';
+import SEO from './SEO';
 
 const FeatureCard = ({ title, description, index }: { title: string; description: string; index: number }) => {
   const variants = {
@@ -171,7 +172,8 @@ const LandingPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1E1E1E] to-[#252525] overflow-hidden">
+    <div className="min-h-screen bg-[#1E1E1E] text-white">
+      <SEO />
       {/* Hero Section */}
       <div className="relative flex items-center justify-center min-h-screen">
         <motion.div 

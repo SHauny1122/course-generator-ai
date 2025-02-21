@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://coursegeneratorai.online/sitemap.xml
