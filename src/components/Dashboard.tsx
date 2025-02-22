@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabaseClient';
-import { exportCourseToText, exportQuizToText } from '../utils/textExporter';
+import { exportCourseToText } from '../utils/textExporter';
 import { useNavigate } from 'react-router-dom';
 import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import LessonGenerator from './LessonGenerator';
-import QuizDisplay from './QuizDisplay';
 
 interface Course {
   id: string;
@@ -15,15 +14,6 @@ interface Course {
   content: string;
   shared?: boolean;
   share_url?: string;
-}
-
-interface Lesson {
-  id: string;
-  user_id: string;
-  module_title: string;
-  lesson_title: string;
-  content: string;
-  created_at?: string;
 }
 
 interface CourseContent {
@@ -296,6 +286,7 @@ const Dashboard = () => {
         onSuccess={() => {
           setShowQuizGenerator(false);
         }}
+        refreshQuizzes={async () => {}}
       />
     );
   }
@@ -310,6 +301,7 @@ const Dashboard = () => {
           setSelectedModuleTitle('');
           setSelectedLessonTitle('');
         }}
+        refreshLessons={async () => {}}
       />
     );
   }
@@ -327,28 +319,23 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       {renderHeader()}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowGenerator(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Generate New Course
-          </button>
-          <button
-            onClick={() => setShowQuizGenerator(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Generate New Quiz
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-8">
+      
+      <div className="space-y-12">
         <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Your Courses</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-white">Your Courses</h2>
+            <button
+              onClick={() => setShowGenerator(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Create New Course
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {savedCourses.length === 0 ? (
+            {loading ? (
+              <div className="text-gray-400">Loading courses...</div>
+            ) : savedCourses.length === 0 ? (
               <div className="text-gray-400">No courses yet. Create your first course!</div>
             ) : (
               savedCourses.map((course) => (
