@@ -8,6 +8,7 @@ import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import LessonGenerator from './LessonGenerator';
 import QuizDisplay from './QuizDisplay';
+import { Session } from '@supabase/supabase-js';
 
 interface Course {
   id: string;
@@ -43,6 +44,10 @@ interface CourseCardProps {
   course: Course;
   onDelete: (id: string) => void;
   onClick: () => void;
+}
+
+interface DashboardProps {
+  session: Session;
 }
 
 const CourseCard = ({ course, onDelete, onClick }: CourseCardProps) => {
@@ -194,7 +199,7 @@ const CourseView = ({
   );
 };
 
-const Dashboard = () => {
+const Dashboard = ({ session }: DashboardProps) => {
   const [showGenerator, setShowGenerator] = useState(false);
   const [showQuizGenerator, setShowQuizGenerator] = useState(false);
   const [savedCourses, setSavedCourses] = useState<Course[]>([]);
