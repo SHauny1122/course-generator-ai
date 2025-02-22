@@ -120,9 +120,10 @@ const LandingPage = () => {
       tier: "Free",
       price: "$0",
       features: [
-        "1 course per month",
-        "5 lessons per month",
-        "3 quizzes per month",
+        "5 courses",
+        "15 lessons",
+        "10 quizzes",
+        "5,000 tokens for AI generation",
         "GPT-4 powered generation",
         "No credit card required"
       ],
@@ -130,15 +131,32 @@ const LandingPage = () => {
       actionText: "Start Free"
     },
     {
+      tier: "Basic",
+      price: "$9.99",
+      features: [
+        "15 courses",
+        "45 lessons",
+        "30 quizzes",
+        "15,000 tokens for AI generation",
+        "GPT-4 powered generation",
+        "24-hour support response"
+      ],
+      popular: false,
+      actionText: "Get Basic"
+    },
+    {
       tier: "Pro",
       price: "$19.99",
       features: [
-        "Unlimited courses",
-        "Unlimited lessons",
-        "Unlimited quizzes",
+        "100 courses",
+        "500 lessons",
+        "300 quizzes",
+        "Unlimited AI generation",
         "Priority GPT-4 access",
-        "Premium support",
-        "Custom templates"
+        "Custom branding",
+        "Team sharing",
+        "Advanced analytics",
+        "12-hour premium support"
       ],
       popular: true,
       actionText: "Go Pro"

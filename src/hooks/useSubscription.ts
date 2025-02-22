@@ -34,7 +34,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   free: {
     maxCourses: 5,
     maxQuizzes: 10,
-    maxTokens: 2000,
+    maxTokens: 5000,
     maxLessons: 15,
     hasTeamSharing: false,
     hasCustomBranding: false,
@@ -44,7 +44,7 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   basic: {
     maxCourses: 15,
     maxQuizzes: 30,
-    maxTokens: 3000,
+    maxTokens: 15000,
     maxLessons: 45,
     hasTeamSharing: false,
     hasCustomBranding: false,
@@ -52,14 +52,14 @@ const SUBSCRIPTION_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     responseTime: 24,
   },
   pro: {
-    maxCourses: Infinity,
-    maxQuizzes: Infinity,
-    maxTokens: 4000,
-    maxLessons: Infinity,
+    maxCourses: 100,
+    maxQuizzes: 300,
+    maxTokens: Number.MAX_SAFE_INTEGER, // Effectively unlimited
+    maxLessons: 500,
     hasTeamSharing: true,
     hasCustomBranding: true,
     hasAdvancedAnalytics: true,
-    responseTime: 4,
+    responseTime: 12,
   },
 };
 
