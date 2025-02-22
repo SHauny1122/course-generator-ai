@@ -65,7 +65,8 @@ function App() {
               }
             />
             <Route path="/learn-more" element={<LearnMore />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </RoutesComponent>
           <Footer />
           <Analytics />
