@@ -103,18 +103,32 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleOAuthLogin = async (provider: 'google') => {
+    setLoading(true);
+    setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      // Just start the OAuth flow - this will redirect to Google
+      await supabase.auth.signInWithOAuth({
+        provider: provider,
         options: {
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent'
-          }
+          redirectTo: `${window.location.origin}/dashboard` // Redirect to dashboard after OAuth
         }
       });
-      if (error) throw error;
+      
+      // No need for subscription creation here - we'll do it in Dashboard component
+      // when the user first loads it after OAuth redirect
+      
+    } catch (error) {
+      console.error('OAuth error:', error);
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await handleOAuthLogin('google');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred');
     }

@@ -196,6 +196,43 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const initializeUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if user has a subscription
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      // If no subscription exists, create one
+      if (!existingSub) {
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert([
+            {
+              user_id: user.id,
+              tier: 'free',
+              courses_used: 0,
+              quizzes_used: 0,
+              tokens_used: 0,
+              active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+          ])
+          .select()
+          .single();
+
+        if (subscriptionError) {
+          console.error('Error creating subscription:', subscriptionError);
+        }
+      }
+    };
+
+    initializeUser();
     fetchSavedCourses();
   }, []);
 
