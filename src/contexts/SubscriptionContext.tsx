@@ -173,11 +173,35 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [fetchSubscription]);
 
   const canUse = (type: UsageType): boolean => {
-    if (!subscription) return false;
-    const used = subscription[`${type}_used`] as number;
+    if (!subscription) {
+      console.log('Subscription check failed: No subscription found');
+      return false;
+    }
+    
     const limits = SUBSCRIPTION_LIMITS[subscription.tier];
-    const maxKey = getMaxKey(type);
-    return used < limits[maxKey];
+    const usage = {
+      courses: subscription.courses_used,
+      quizzes: subscription.quizzes_used,
+      tokens: subscription.tokens_used,
+      lessons: subscription.lessons_used,
+    };
+    
+    const maxValues = {
+      courses: limits.maxCourses,
+      quizzes: limits.maxQuizzes,
+      tokens: limits.maxTokens,
+      lessons: limits.maxLessons,
+    };
+
+    console.log('Subscription check:', {
+      type,
+      tier: subscription.tier,
+      currentUsage: usage[type],
+      maxAllowed: maxValues[type],
+      isAllowed: usage[type] < maxValues[type]
+    });
+
+    return usage[type] < maxValues[type];
   };
 
   const updateUsage = async (type: UsageType, amount = 1): Promise<boolean> => {
