@@ -196,7 +196,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeUser = async () => {
+    const initialize = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -230,10 +230,12 @@ const Dashboard = () => {
           console.error('Error creating subscription:', subscriptionError);
         }
       }
+
+      // Only fetch courses after subscription is checked/created
+      await fetchSavedCourses();
     };
 
-    initializeUser();
-    fetchSavedCourses();
+    initialize();
   }, []);
 
   const fetchSavedCourses = async () => {
