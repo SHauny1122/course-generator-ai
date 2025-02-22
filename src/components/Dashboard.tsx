@@ -8,7 +8,6 @@ import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import LessonGenerator from './LessonGenerator';
 import QuizDisplay from './QuizDisplay';
-import { Session } from '@supabase/supabase-js';
 
 interface Course {
   id: string;
@@ -44,10 +43,6 @@ interface CourseCardProps {
   course: Course;
   onDelete: (id: string) => void;
   onClick: () => void;
-}
-
-interface DashboardProps {
-  session: Session;
 }
 
 const CourseCard = ({ course, onDelete, onClick }: CourseCardProps) => {
@@ -199,44 +194,20 @@ const CourseView = ({
   );
 };
 
-const Dashboard = ({ session }: DashboardProps) => {
+const Dashboard = () => {
   const [showGenerator, setShowGenerator] = useState(false);
   const [showQuizGenerator, setShowQuizGenerator] = useState(false);
   const [savedCourses, setSavedCourses] = useState<Course[]>([]);
-  const [savedQuizzes, setSavedQuizzes] = useState<any[]>([]);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showLessonGenerator, setShowLessonGenerator] = useState(false);
-  const [selectedLessonInfo, setSelectedLessonInfo] = useState<{
-    moduleTitle: string;
-    lessonTitle: string;
-  } | null>(null);
-  const [savedLessons, setSavedLessons] = useState<Lesson[]>([]);
+  const [selectedModuleTitle, setSelectedModuleTitle] = useState('');
+  const [selectedLessonTitle, setSelectedLessonTitle] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Check authentication and fetch initial data
   useEffect(() => {
-    const fetchInitialData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-      setUserEmail(user.email || null);
-      await Promise.all([fetchSavedCourses(), fetchSavedQuizzes(), fetchSavedLessons()]);
-    };
-
-    fetchInitialData();
+    fetchSavedCourses();
   }, []);
-
-  const handleGenerateLesson = (moduleTitle: string, lessonTitle: string) => {
-    setSelectedLessonInfo({
-      moduleTitle,
-      lessonTitle
-    });
-    setShowLessonGenerator(true);
-  };
 
   const fetchSavedCourses = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -254,42 +225,13 @@ const Dashboard = ({ session }: DashboardProps) => {
     }
 
     setSavedCourses(courses || []);
+    setLoading(false);
   };
 
-  const fetchSavedQuizzes = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: quizzes, error } = await supabase
-      .from('quizzes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching quizzes:', error);
-      return;
-    }
-
-    setSavedQuizzes(quizzes || []);
-  };
-
-  const fetchSavedLessons = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: lessons, error } = await supabase
-      .from('lessons')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching lessons:', error);
-      return;
-    }
-
-    setSavedLessons(lessons || []);
+  const handleGenerateLesson = (moduleTitle: string, lessonTitle: string) => {
+    setSelectedModuleTitle(moduleTitle);
+    setSelectedLessonTitle(lessonTitle);
+    setShowLessonGenerator(true);
   };
 
   const handleDeleteCourse = async (courseId: string) => {
@@ -320,29 +262,10 @@ const Dashboard = ({ session }: DashboardProps) => {
     navigate('/login');
   };
 
-  const handleDeleteLesson = async (lessonId: string) => {
-    if (!window.confirm('Are you sure you want to delete this lesson?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('lessons')
-        .delete()
-        .eq('id', lessonId);
-
-      if (error) throw error;
-      await fetchSavedLessons();
-    } catch (error) {
-      console.error('Error deleting lesson:', error);
-      alert('Failed to delete lesson. Please try again.');
-    }
-  };
-
   const renderHeader = () => {
     return (
       <div className="flex justify-between items-center mb-8">
-        <span className="text-gray-400">{userEmail}</span>
+        <span className="text-gray-400">User Email</span>
         <button
           onClick={handleSignOut}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
@@ -352,118 +275,6 @@ const Dashboard = ({ session }: DashboardProps) => {
       </div>
     );
   };
-
-  const renderQuizzes = () => (
-    <div>
-      <h2 className="text-xl font-semibold text-white mb-4">Your Quizzes</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {savedQuizzes.length === 0 ? (
-          <div className="text-gray-400">No quizzes yet. Create your first quiz!</div>
-        ) : (
-          savedQuizzes.map((quiz) => (
-            <div
-              key={quiz.id}
-              onClick={() => setSelectedQuiz(quiz)}
-              className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-white mb-2">{quiz.topic}</h3>
-              <p className="text-gray-400">Difficulty: {quiz.difficulty}</p>
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    exportQuizToText(quiz);
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                >
-                  Download
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteQuiz(quiz.id);
-                  }}
-                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-
-  const handleDeleteQuiz = async (quizId: string) => {
-    if (!window.confirm('Are you sure you want to delete this quiz?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('quizzes')
-        .delete()
-        .eq('id', quizId);
-
-      if (error) throw error;
-      await fetchSavedQuizzes();
-    } catch (error) {
-      console.error('Error deleting quiz:', error);
-      alert('Failed to delete quiz. Please try again.');
-    }
-  };
-
-  const renderLessons = () => (
-    <div>
-      <h2 className="text-xl font-semibold text-white mb-4">Your Lessons</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {savedLessons.length === 0 ? (
-          <div className="text-gray-400">No lessons yet. Generate your first lesson!</div>
-        ) : (
-          savedLessons.map((lesson) => (
-            <motion.div
-              key={lesson.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#252525] p-6 rounded-xl shadow-lg hover:bg-[#2a2a2a] transition-colors"
-            >
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-1">{lesson.lesson_title}</h3>
-                <p className="text-gray-400 text-sm mb-2">Module: {lesson.module_title}</p>
-                <div className="prose prose-invert max-w-none text-sm line-clamp-3">
-                  <ReactMarkdown>{lesson.content}</ReactMarkdown>
-                </div>
-              </div>
-              
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => {
-                    const element = document.createElement("a");
-                    const file = new Blob([lesson.content], {type: 'text/markdown'});
-                    element.href = URL.createObjectURL(file);
-                    element.download = `${lesson.module_title}-${lesson.lesson_title}.md`;
-                    document.body.appendChild(element);
-                    element.click();
-                    document.body.removeChild(element);
-                  }}
-                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-                >
-                  Download
-                </button>
-                <button
-                  onClick={() => handleDeleteLesson(lesson.id)}
-                  className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          ))
-        )}
-      </div>
-    </div>
-  );
 
   if (showGenerator) {
     return (
@@ -484,23 +295,21 @@ const Dashboard = ({ session }: DashboardProps) => {
         onClose={() => setShowQuizGenerator(false)}
         onSuccess={() => {
           setShowQuizGenerator(false);
-          fetchSavedQuizzes();
         }}
-        refreshQuizzes={fetchSavedQuizzes}
       />
     );
   }
 
-  if (showLessonGenerator && selectedLessonInfo) {
+  if (showLessonGenerator && selectedModuleTitle && selectedLessonTitle) {
     return (
       <LessonGenerator
-        moduleTitle={selectedLessonInfo.moduleTitle}
-        lessonTitle={selectedLessonInfo.lessonTitle}
+        moduleTitle={selectedModuleTitle}
+        lessonTitle={selectedLessonTitle}
         onClose={() => {
           setShowLessonGenerator(false);
-          setSelectedLessonInfo(null);
+          setSelectedModuleTitle('');
+          setSelectedLessonTitle('');
         }}
-        refreshLessons={fetchSavedLessons}
       />
     );
   }
@@ -512,18 +321,6 @@ const Dashboard = ({ session }: DashboardProps) => {
         onClose={() => setSelectedCourse(null)}
         onGenerateLesson={handleGenerateLesson}
       />
-    );
-  }
-
-  if (selectedQuiz) {
-    return (
-      <div className="min-h-screen bg-gray-900 p-8">
-        <QuizDisplay 
-          quiz={selectedQuiz} 
-          onClose={() => setSelectedQuiz(null)}
-          onDelete={() => handleDeleteQuiz(selectedQuiz.id)}
-        />
-      </div>
     );
   }
 
@@ -565,9 +362,6 @@ const Dashboard = ({ session }: DashboardProps) => {
             )}
           </div>
         </div>
-
-        {renderLessons()}
-        {renderQuizzes()}
       </div>
     </div>
   );

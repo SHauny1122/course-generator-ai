@@ -58,7 +58,7 @@ function App() {
               path="/dashboard"
               element={
                 session ? (
-                  <Dashboard session={session} />
+                  <Dashboard />
                 ) : (
                   <Navigate to="/" replace />
                 )
