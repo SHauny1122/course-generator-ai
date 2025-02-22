@@ -27,10 +27,10 @@ interface SubscriptionContextType {
 
 const SUBSCRIPTION_LIMITS: Record<string, SubscriptionLimits> = {
   free: {
-    maxCourses: 2,
-    maxQuizzes: 5,
-    maxTokens: 1000,
-    maxLessons: 3,
+    maxCourses: 5,
+    maxQuizzes: 10,
+    maxTokens: 5000,
+    maxLessons: 15,
     hasTeamSharing: false,
     hasCustomBranding: false,
     hasAdvancedAnalytics: false,
