@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import LearnMore from './components/LearnMore';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import Footer from './components/Footer';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
@@ -38,26 +40,38 @@ function App() {
   }
 
   return (
-    <>
+    <Router>
       <SubscriptionProvider>
-        <Router>
-          <div className="min-h-screen bg-[#1E1E1E]">
-            <RoutesComponent>
-              <Route 
-                path="/" 
-                element={!session ? <LandingPage /> : <Navigate to="/dashboard" />} 
-              />
-              <Route 
-                path="/dashboard" 
-                element={session ? <Dashboard /> : <Navigate to="/" />} 
-              />
-              <Route path="/learn-more" element={<LearnMore />} />
-            </RoutesComponent>
-          </div>
-        </Router>
+        <div className="min-h-screen flex flex-col bg-[#1E1E1E]">
+          <RoutesComponent>
+            <Route
+              path="/"
+              element={
+                session ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <LandingPage />
+                )
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                session ? (
+                  <Dashboard session={session} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route path="/learn-more" element={<LearnMore />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+          </RoutesComponent>
+          <Footer />
+          <Analytics />
+        </div>
       </SubscriptionProvider>
-      <Analytics />
-    </>
+    </Router>
   );
 }
 
