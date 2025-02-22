@@ -17,13 +17,16 @@ const CourseGenerator = ({ onClose, onSuccess, refreshCourses }: Props) => {
   const [duration, setDuration] = useState('1 week');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>('');
-  const { canUse, incrementUsage } = useSubscriptionContext();
+  const { canUse, incrementUsage, refreshSubscription } = useSubscriptionContext();
 
   const handleGenerateCourse = async () => {
     if (!title.trim()) {
       setError('Please enter a course title');
       return;
     }
+
+    // Refresh subscription data to ensure we have latest limits
+    await refreshSubscription();
 
     if (!canUse('courses')) {
       setError('You have reached your course limit. Please upgrade your plan.');

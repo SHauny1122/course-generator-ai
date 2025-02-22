@@ -21,6 +21,7 @@ interface SubscriptionContextType {
   canUse: (type: UsageType) => boolean;
   updateUsage: (type: UsageType, amount?: number) => Promise<boolean>;
   incrementUsage: (type: UsageType) => Promise<void>;
+  refreshSubscription: () => Promise<void>;
   getLimits: () => SubscriptionLimits;
 }
 
@@ -59,11 +60,12 @@ const SUBSCRIPTION_LIMITS: Record<string, SubscriptionLimits> = {
 
 const SubscriptionContext = createContext<SubscriptionContextType>({
   subscription: null,
-  loading: true,
+  loading: false,
   error: null,
   canUse: () => false,
   updateUsage: async () => false,
   incrementUsage: async () => {},
+  refreshSubscription: async () => {},
   getLimits: () => SUBSCRIPTION_LIMITS.free
 });
 
@@ -222,6 +224,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const refreshSubscription = async () => {
+    await fetchSubscription();
+  };
+
   const getLimits = (): SubscriptionLimits => {
     if (!subscription) return SUBSCRIPTION_LIMITS.free;
     return SUBSCRIPTION_LIMITS[subscription.tier];
@@ -234,6 +240,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     canUse,
     updateUsage,
     incrementUsage,
+    refreshSubscription,
     getLimits
   }), [subscription, loading, error]);
 
