@@ -193,12 +193,15 @@ const Dashboard = () => {
   const [selectedModuleTitle, setSelectedModuleTitle] = useState('');
   const [selectedLessonTitle, setSelectedLessonTitle] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string>('');
   const navigate = useNavigate();
 
   useEffect(() => {
     const initialize = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setUserEmail(user.email || '');
 
       // Check if user has a subscription
       const { data: existingSub } = await supabase
@@ -294,7 +297,7 @@ const Dashboard = () => {
   const renderHeader = () => {
     return (
       <div className="flex justify-between items-center mb-8">
-        <span className="text-gray-400">User Email</span>
+        <span className="text-gray-400">{userEmail}</span>
         <button
           onClick={handleSignOut}
           className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
