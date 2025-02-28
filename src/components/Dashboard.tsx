@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabaseClient';
 import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import QuizDisplay from './QuizDisplay';
-import LessonGenerator from './LessonGenerator';
 import '../styles/animations.css';
 
 interface Course {
@@ -45,43 +44,13 @@ interface Quiz {
   created_at: string;
 }
 
-interface UsageStats {
-  tokens_used: number;
-  courses_used: number;
-  quizzes_used: number;
-  lessons_used: number;
-  tier: string;
-}
-
-const LIMITS = {
-  free: {
-    tokens: 5000,
-    courses: 5,
-    quizzes: 10,
-    lessons: 15
-  },
-  basic: {
-    tokens: 15000,
-    courses: 15,
-    quizzes: 30,
-    lessons: 45
-  },
-  pro: {
-    tokens: Infinity,
-    courses: Infinity,
-    quizzes: Infinity,
-    lessons: Infinity
-  }
-};
-
 function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [showGenerator, setShowGenerator] = useState(false);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [showCourseGenerator, setShowCourseGenerator] = useState(false);
   const [showQuizGenerator, setShowQuizGenerator] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
-  const [email, setEmail] = useState<string>('');
   const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
 
   useEffect(() => {
@@ -168,7 +137,7 @@ function Dashboard() {
           </h1>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => setShowGenerator(true)}
+              onClick={() => setShowCourseGenerator(true)}
               className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
                 bg-gradient-to-r from-purple-600 to-blue-600
                 hover:from-purple-500 hover:to-blue-400
@@ -188,7 +157,6 @@ function Dashboard() {
               Generate Quiz
             </button>
             <div className="flex items-center gap-2">
-              <span className="text-gray-300">{email}</span>
               <button
                 onClick={handleSignOut}
                 className="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
@@ -383,11 +351,11 @@ function Dashboard() {
         </div>
       </main>
 
-      {showGenerator && (
+      {showCourseGenerator && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="w-full max-w-lg">
             <CourseGenerator
-              onClose={() => setShowGenerator(false)}
+              onClose={() => setShowCourseGenerator(false)}
               onGenerate={handleGenerateCourse}
             />
           </div>
