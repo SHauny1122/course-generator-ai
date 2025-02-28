@@ -44,6 +44,14 @@ interface Quiz {
   created_at: string;
 }
 
+interface UsageStats {
+  tokens_used: number;
+  courses_used: number;
+  quizzes_used: number;
+  lessons_used: number;
+  tier: string;
+}
+
 function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -52,11 +60,19 @@ function Dashboard() {
   const [showQuizGenerator, setShowQuizGenerator] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats>({
+    tokens_used: 0,
+    courses_used: 0,
+    quizzes_used: 0,
+    lessons_used: 0,
+    tier: 'free'
+  });
 
   useEffect(() => {
     fetchCourses();
     fetchLessons();
     fetchQuizzes();
+    fetchUsageStats();
   }, []);
 
   const fetchCourses = async () => {
@@ -110,6 +126,24 @@ function Dashboard() {
       setQuizzes(data || []);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
+    }
+  };
+
+  const fetchUsageStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('tokens_used, courses_used, quizzes_used, lessons_used, tier')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) throw error;
+      if (data) setUsageStats(data);
+    } catch (error) {
+      console.error('Error fetching usage stats:', error);
     }
   };
 
@@ -170,6 +204,63 @@ function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <div className="container mx-auto">
+          {/* Free Tier Usage Stats */}
+          <div className="bg-[#1E293B] rounded-xl p-6 mb-8">
+            <h2 className="text-2xl font-bold text-white mb-6">{usageStats.tier.charAt(0).toUpperCase() + usageStats.tier.slice(1)} Tier Usage</h2>
+            <div className="grid gap-6">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-300">Tokens Used</span>
+                  <span className="text-gray-300">{usageStats.tokens_used} / 5000</span>
+                </div>
+                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+                    style={{ width: `${(usageStats.tokens_used / 5000) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Courses Created</span>
+                    <span className="text-gray-300">{usageStats.courses_used} / 5</span>
+                  </div>
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+                      style={{ width: `${(usageStats.courses_used / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Quizzes Created</span>
+                    <span className="text-gray-300">{usageStats.quizzes_used} / 10</span>
+                  </div>
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+                      style={{ width: `${(usageStats.quizzes_used / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-gray-300">Lessons Created</span>
+                    <span className="text-gray-300">{usageStats.lessons_used} / 15</span>
+                  </div>
+                  <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-purple-600 to-blue-600"
+                      style={{ width: `${(usageStats.lessons_used / 15) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <h2 className="text-2xl font-bold text-white mb-6">Your Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => {
