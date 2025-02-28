@@ -147,7 +147,7 @@ const LandingPage = () => {
               animate={{ opacity: 1, y: 0 }}
               className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-6"
             >
-              Create Professional Courses with AI
+              Create Professional Mini-Courses with AI
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -155,7 +155,7 @@ const LandingPage = () => {
               transition={{ delay: 0.1 }}
               className="text-xl text-gray-400 mb-8"
             >
-              Transform your expertise into engaging courses in minutes with our AI-powered platform
+              Transform your expertise into engaging mini-courses in minutes with our AI-powered course generator
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
