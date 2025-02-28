@@ -335,26 +335,39 @@ function Dashboard() {
               <div
                 key={quiz.id}
                 className="bg-[#1E293B] rounded-xl p-6 border border-gray-700/50 hover:border-purple-500/50"
-                onClick={() => setSelectedQuiz(quiz)}
               >
                 <h3 className="text-xl font-semibold mb-2 text-white">{quiz.topic}</h3>
                 <p className="text-gray-400 mb-2">Difficulty: {quiz.difficulty}</p>
                 <p className="text-gray-400 mb-4 text-sm">Created on {new Date(quiz.created_at).toLocaleDateString()}</p>
                 <div className="flex gap-3">
                   <button
-                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedQuiz(quiz);
-                    }}
+                    className="px-4 py-2 rounded text-white font-medium transition-all duration-300
+                      bg-gradient-to-r from-purple-600 to-blue-600
+                      hover:from-purple-500 hover:to-blue-400
+                      shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                      hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+                    onClick={() => setSelectedQuiz(quiz)}
                   >
                     View
                   </button>
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle download
+                    className="px-4 py-2 rounded text-white font-medium transition-all duration-300
+                      bg-gradient-to-r from-blue-600 to-blue-500
+                      hover:from-blue-500 hover:to-blue-400
+                      shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                      hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+                    onClick={() => {
+                      // Download quiz as text file
+                      const text = `Topic: ${quiz.topic}\nDifficulty: ${quiz.difficulty}\n\n${quiz.content}`;
+                      const blob = new Blob([text], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${quiz.topic}_quiz.txt`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
                     }}
                   >
                     Download
