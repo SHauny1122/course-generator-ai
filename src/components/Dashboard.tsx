@@ -60,6 +60,7 @@ function Dashboard() {
   const [showQuizGenerator, setShowQuizGenerator] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats>({
     tokens_used: 0,
     courses_used: 0,
@@ -417,6 +418,7 @@ function Dashboard() {
                           shadow-[0_0_10px_rgba(147,51,234,0.3)]
                           hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
                           text-xs"
+                        onClick={() => setSelectedLesson(lesson)}
                       >
                         View Lesson
                       </button>
@@ -524,6 +526,30 @@ function Dashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedLesson && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-4xl bg-[#1E293B] rounded-xl p-6 relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setSelectedLesson(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-2xl font-bold mb-4">{selectedLesson.lesson_title}</h2>
+            <p className="text-gray-300 mb-8">Module: {selectedLesson.module_title}</p>
+            <div className="space-y-6">
+              <div className="bg-black/20 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold">{selectedLesson.lesson_title}</h3>
+                </div>
+                <p className="text-gray-300">{selectedLesson.content}</p>
+              </div>
             </div>
           </div>
         </div>
