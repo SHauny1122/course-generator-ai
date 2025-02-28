@@ -3,6 +3,9 @@ import { supabase } from '../lib/supabaseClient';
 import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import QuizDisplay from './QuizDisplay';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import '../styles/animations.css';
 
 interface Course {
@@ -541,15 +544,55 @@ function Dashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-2xl font-bold mb-4">{selectedLesson.lesson_title}</h2>
-            <p className="text-gray-300 mb-8">Module: {selectedLesson.module_title}</p>
-            <div className="space-y-6">
-              <div className="bg-black/20 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold">{selectedLesson.lesson_title}</h3>
-                </div>
-                <p className="text-gray-300">{selectedLesson.content}</p>
-              </div>
+            
+            <div className="prose prose-invert prose-lg max-w-none">
+              <ReactMarkdown
+                components={{
+                  code({inline, className, children, ...props}: any) {
+                    const match = /language-(\w+)/.exec(className || '');
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        style={vscDarkPlus}
+                        language={match[1]}
+                        PreTag="div"
+                        {...props}
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  h1: ({children, ...props}: any) => <h1 className="text-3xl font-bold mb-4 text-white" {...props}>{children}</h1>,
+                  h2: ({children, ...props}: any) => <h2 className="text-2xl font-bold mb-3 text-white" {...props}>{children}</h2>,
+                  h3: ({children, ...props}: any) => <h3 className="text-xl font-bold mb-2 text-white" {...props}>{children}</h3>,
+                  p: ({children, ...props}: any) => <p className="text-gray-300 mb-4 leading-relaxed" {...props}>{children}</p>,
+                  ul: ({children, ...props}: any) => <ul className="list-disc list-inside mb-4 text-gray-300" {...props}>{children}</ul>,
+                  ol: ({children, ...props}: any) => <ol className="list-decimal list-inside mb-4 text-gray-300" {...props}>{children}</ol>,
+                  a: ({children, ...props}: any) => (
+                    <a 
+                      className="text-blue-400 hover:text-blue-300 underline" 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      {...props}
+                    >
+                      {children}
+                    </a>
+                  ),
+                  blockquote: ({children, ...props}: any) => (
+                    <blockquote 
+                      className="border-l-4 border-purple-500 pl-4 my-4 italic text-gray-400"
+                      {...props}
+                    >
+                      {children}
+                    </blockquote>
+                  ),
+                }}
+              >
+                {selectedLesson.content}
+              </ReactMarkdown>
             </div>
           </div>
         </div>
