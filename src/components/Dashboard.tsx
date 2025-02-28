@@ -83,26 +83,12 @@ function Dashboard() {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [email, setEmail] = useState<string>('');
   const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [showLessonGenerator, setShowLessonGenerator] = useState<{moduleTitle: string, lessonTitle: string} | null>(null);
-  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
-
-  const navigate = useNavigate();
-  const subscriptionContext = useSubscriptionContext();
 
   useEffect(() => {
     fetchCourses();
     fetchLessons();
     fetchQuizzes();
-    fetchUsageStats();
   }, []);
-
-  const fetchUserEmail = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.email) {
-      setEmail(user.email);
-    }
-  };
 
   const fetchCourses = async () => {
     try {
@@ -158,32 +144,6 @@ function Dashboard() {
     }
   };
 
-  const fetchUsageStats = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', userData.user.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching usage stats:', error);
-      return;
-    }
-
-    if (data) {
-      setUsageStats({
-        tokens_used: data.tokens_used || 0,
-        courses_used: data.courses_used || 0,
-        quizzes_used: data.quizzes_used || 0,
-        lessons_used: data.lessons_used || 0,
-        tier: data.tier,
-      });
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -196,7 +156,6 @@ function Dashboard() {
 
   const handleGenerateCourse = (_course: CourseContent) => {
     fetchCourses();
-    fetchUsageStats();
   };
 
   return (
@@ -242,70 +201,6 @@ function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {usageStats && usageStats.tier === 'free' && (
-          <div className="container mx-auto mb-8">
-            <div className="bg-gradient-to-br from-[#2A2F4E] to-[#1E293B] rounded-xl p-6">
-              <h2 className="text-xl font-bold text-white mb-4">Free Tier Usage</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Tokens Usage */}
-                <div className="bg-[#1E293B]/50 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Tokens Used</span>
-                    <span className="text-sm text-gray-400">{usageStats.tokens_used} / {LIMITS.free.tokens}</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.tokens_used / LIMITS.free.tokens) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Courses Usage */}
-                <div className="bg-[#1E293B]/50 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Courses Created</span>
-                    <span className="text-sm text-gray-400">{usageStats.courses_used} / {LIMITS.free.courses}</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.courses_used / LIMITS.free.courses) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Quizzes Usage */}
-                <div className="bg-[#1E293B]/50 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Quizzes Created</span>
-                    <span className="text-sm text-gray-400">{usageStats.quizzes_used} / {LIMITS.free.quizzes}</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.quizzes_used / LIMITS.free.quizzes) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Lessons Usage */}
-                <div className="bg-[#1E293B]/50 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-300">Lessons Created</span>
-                    <span className="text-sm text-gray-400">{usageStats.lessons_used} / {LIMITS.free.lessons}</span>
-                  </div>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.lessons_used / LIMITS.free.lessons) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         <div className="container mx-auto">
           <h2 className="text-2xl font-bold text-white mb-6">Your Courses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -444,7 +339,6 @@ function Dashboard() {
                   <div className="flex justify-between items-center">
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setSelectedLesson(lesson)}
                         className="px-3 py-1.5 rounded text-white font-medium transition-all duration-300
                           bg-gradient-to-r from-purple-600 to-blue-600
                           hover:from-purple-500 hover:to-blue-400
@@ -507,7 +401,6 @@ function Dashboard() {
           onSuccess={() => {
             setShowQuizGenerator(false);
             fetchQuizzes();
-            fetchUsageStats();
           }}
           refreshQuizzes={fetchQuizzes}
         />
@@ -521,7 +414,6 @@ function Dashboard() {
           onDelete={() => {
             setSelectedQuiz(null);
             fetchQuizzes();
-            fetchUsageStats();
           }}
         />
       )}
@@ -544,20 +436,6 @@ function Dashboard() {
                 <div key={moduleIndex} className="bg-black/20 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-bold">{module.title}</h3>
-                    <button
-                      onClick={() => setShowLessonGenerator({
-                        moduleTitle: module.title,
-                        lessonTitle: `Lesson on ${module.title}`
-                      })}
-                      className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
-                        bg-gradient-to-r from-purple-600 to-blue-600
-                        hover:from-purple-500 hover:to-blue-400
-                        shadow-[0_0_10px_rgba(147,51,234,0.3)]
-                        hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
-                        text-sm"
-                    >
-                      Generate Lesson
-                    </button>
                   </div>
                   {module.description && (
                     <p className="text-gray-300 mb-4">{module.description}</p>
@@ -577,52 +455,6 @@ function Dashboard() {
             </div>
           </div>
         </div>
-      )}
-
-      {selectedLesson && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1E293B] rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-white mb-2">{selectedLesson.lesson_title}</h2>
-                <p className="text-purple-300/80">Module: {selectedLesson.module_title}</p>
-              </div>
-              <button
-                onClick={() => setSelectedLesson(null)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="prose prose-invert max-w-none">
-              {selectedLesson.content.split('\n').map((paragraph: string, index: number) => (
-                <p key={index}>{paragraph}</p>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showLessonGenerator && (
-        <LessonGenerator
-          moduleTitle={showLessonGenerator.moduleTitle}
-          lessonTitle={showLessonGenerator.lessonTitle}
-          onClose={() => setShowLessonGenerator(null)}
-          refreshLessons={fetchLessons}
-        />
       )}
     </div>
   );
