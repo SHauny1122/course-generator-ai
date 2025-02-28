@@ -40,3 +40,22 @@
 .animation-delay-4000 {
   animation-delay: 4s;
 }
+
+.gradient-glow {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 0 20px rgba(147, 51, 234, 0.1),
+    inset 0 0 20px rgba(147, 51, 234, 0.1);
+  transition: all 0.3s ease-in-out;
+}
+
+.gradient-glow:hover {
+  border-color: rgba(147, 51, 234, 0.3);
+  box-shadow: 
+    0 0 30px rgba(147, 51, 234, 0.2),
+    inset 0 0 30px rgba(147, 51, 234, 0.2);
+  transform: translateY(-2px);
+}

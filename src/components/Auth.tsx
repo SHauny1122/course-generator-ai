@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 interface AuthProps {
+  onBack?: () => void;
   onClose?: () => void;
   selectedPlan?: string | null;
 }
 
-export default function Auth({ onClose, selectedPlan }: AuthProps) {
+export default function Auth({ onBack, onClose, selectedPlan }: AuthProps) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,47 +38,38 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
         if (signUpError) throw signUpError;
         if (!data.user) throw new Error('No user data returned');
 
-        // Wait a moment for the auth session to be fully established
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Show success message for email verification
+        setError('Please check your email to verify your account. You can close this window.');
+        
+        try {
+          // Try to create subscription, but don't fail if it doesn't work
+          const { error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .insert([
+              {
+                user_id: data.user.id,
+                tier: selectedPlan || 'free',
+                courses_used: 0,
+                quizzes_used: 0,
+                tokens_used: 0,
+                active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+            ])
+            .select()
+            .single();
 
-        // Create free subscription for new users
-        const { error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .insert([
-            {
-              user_id: data.user.id,
-              tier: selectedPlan || 'free',
-              courses_used: 0,
-              quizzes_used: 0,
-              tokens_used: 0,
-              active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-          ])
-          .select()
-          .single();
-
-        if (subscriptionError) {
-          console.error('Error creating subscription:', subscriptionError);
-          // If we fail to create subscription, sign out and show error
-          await supabase.auth.signOut();
-          throw new Error('Failed to create subscription. Please try again.');
+          if (subscriptionError) {
+            console.error('Error creating subscription:', subscriptionError);
+            // Log error but don't throw - we'll handle this later
+          }
+        } catch (subError) {
+          console.error('Subscription creation error:', subError);
+          // Don't throw - we'll handle this when user confirms email
         }
 
-        // Verify the subscription was created and is active
-        const { data: verifyData, error: verifyError } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .eq('active', true)
-          .single();
-
-        if (verifyError || !verifyData) {
-          console.error('Error verifying subscription:', verifyError);
-          await supabase.auth.signOut();
-          throw new Error('Failed to verify subscription. Please try again.');
-        }
+        return; // Exit here - user needs to verify email
 
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -86,18 +78,15 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
         });
 
         if (signInError) throw signInError;
+        
+        // If we get here, sign in was successful
+        if (onClose) onClose();
+        navigate('/dashboard');
       }
 
-      // If we get here, auth was successful
-      if (onClose) onClose();
-      
-      // Navigate to dashboard after successful auth
-      navigate('/dashboard');
     } catch (error) {
       console.error('Auth error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
-      // If there's an error, sign out the user to prevent a bad state
-      await supabase.auth.signOut();
     } finally {
       setLoading(false);
     }
@@ -134,16 +123,34 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
     }
   };
 
+  const handleBackToHome = () => {
+    if (onBack) {
+      onBack();
+    }
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="min-h-screen flex items-center justify-center bg-[#1E1E1E] bg-opacity-95 p-4"
-    >
-      <div className="max-w-md w-full space-y-8 bg-[#2A2A2A] p-8 rounded-xl shadow-lg">
-        <div>
-          <h2 className="text-3xl font-bold text-center text-white mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back Button */}
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="mb-8 flex items-center text-gray-400 hover:text-white transition-colors"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </button>
+        )}
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-md mx-auto gradient-glow p-8"
+        >
+          <h2 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>
           
@@ -159,12 +166,18 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
           </div>
 
           {error && (
-            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
+            <div 
+              className={`p-3 rounded-lg text-sm mb-4 ${
+                error.includes('check your email') 
+                  ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+                  : 'bg-red-500/10 text-red-500 border border-red-500/20'
+              }`}
+            >
+              {error}
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="mt-8 space-y-6">
+          <form onSubmit={handleAuth} className="space-y-6">
             <div className="rounded-md shadow-sm space-y-4">
               <div>
                 <label htmlFor="email" className="sr-only">Email address</label>
@@ -240,8 +253,8 @@ export default function Auth({ onClose, selectedPlan }: AuthProps) {
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }

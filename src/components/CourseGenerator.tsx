@@ -1,173 +1,173 @@
 import { useState } from 'react';
 import { generateCourseOutline } from '../utils/openai';
-import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { supabase } from '../lib/supabaseClient';
 import LoadingSpinner from './LoadingSpinner';
+import { checkFreeTierLimits } from '../utils/openai';
 
 interface Props {
   onClose: () => void;
-  onSuccess: () => void;
-  refreshCourses: () => void;
+  onGenerate: (course: any) => void;
 }
 
-const CourseGenerator = ({ onClose, onSuccess, refreshCourses }: Props) => {
+const CourseGenerator = ({ onClose, onGenerate }: Props) => {
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('beginner');
   const [duration, setDuration] = useState('1 week');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>('');
-  const { canUse, incrementUsage, refreshSubscription } = useSubscriptionContext();
 
   const handleGenerateCourse = async () => {
-    if (!title.trim()) {
-      setError('Please enter a course title');
-      return;
-    }
-
-    // Refresh subscription data to ensure we have latest limits
-    await refreshSubscription();
-
-    if (!canUse('courses')) {
-      setError('You have reached your course limit. Please upgrade your plan.');
-      return;
-    }
-
-    if (!canUse('tokens')) {
-      setError('You have reached your token limit. Please upgrade your plan to continue generating content.');
+    if (!topic || !audience || !duration) {
+      setError('Please fill in all fields');
       return;
     }
 
     try {
+      // Check if user has enough tokens and course slots
+      const [canUseTokens, canCreateCourse] = await Promise.all([
+        checkFreeTierLimits('token', 0), // We'll check actual usage after generation
+        checkFreeTierLimits('course', 1)
+      ]);
+
+      if (!canUseTokens) {
+        setError('You have reached your monthly token limit. Please upgrade to continue generating content.');
+        return;
+      }
+
+      if (!canCreateCourse) {
+        setError('You have reached your monthly course limit. Please upgrade to create more courses.');
+        return;
+      }
+
       setGenerating(true);
       setError('');
 
-      // Generate course outline
-      const courseStructure = await generateCourseOutline(
-        topic || title,
-        audience,
-        duration
-      );
-
-      if (!courseStructure) {
+      const course = await generateCourseOutline(topic, audience, duration);
+      
+      if (!course) {
         throw new Error('Failed to generate course outline');
       }
 
-      // Create the course in Supabase
+      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      const { error: courseError } = await supabase
+      // Save the course
+      const { error: saveError } = await supabase
         .from('courses')
         .insert({
-          title: courseStructure.title,
-          content: JSON.stringify({
-            ...courseStructure,
-            topic,
-            targetAudience: audience,
-            courseDuration: duration
-          }),
           user_id: user.id,
-          shared: false,
-        })
-        .select()
-        .single();
+          title: topic,
+          content: JSON.stringify(course),
+          shared: false
+        });
 
-      if (courseError) throw courseError;
+      if (saveError) throw saveError;
 
-      await incrementUsage('courses');
-      onSuccess();
-      refreshCourses();
+      if (onGenerate) {
+        onGenerate(course);
+      }
+      
       onClose();
-    } catch (error) {
-      console.error('Error generating course:', error);
-      setError('Failed to generate course. Please try again.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setGenerating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md relative">
-        <h2 className="text-2xl font-bold mb-4 text-white">Generate New Course</h2>
-        
-        {generating ? (
-          <div className="absolute inset-0 bg-gray-800 bg-opacity-90 flex items-center justify-center">
-            <LoadingSpinner text="Generating course content..." />
-          </div>
-        ) : (
-          <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-[#1E1E1E] rounded-xl border border-white/10 w-full max-w-md overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-white mb-6">Generate New Course</h2>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
             <div>
-              <label className="block text-white mb-2">Course Title:</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Course Title</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
-                placeholder="e.g., Flutter development"
+                placeholder="e.g., Flutter Development"
+                className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               />
             </div>
+
             <div>
-              <label className="block text-white mb-2">Topic:</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Topic</label>
               <input
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                placeholder="e.g., Flutter development"
+                placeholder="e.g., Mobile App Development"
+                className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               />
             </div>
+
             <div>
-              <label className="block text-white mb-2">Target Audience:</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Target Audience</label>
               <select
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
+                className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
               </select>
             </div>
+
             <div>
-              <label className="block text-white mb-2">Duration:</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Duration</label>
               <select
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
-                className="w-full p-2 rounded bg-gray-700 text-white"
-                required
+                className="w-full px-4 py-2 bg-black/20 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 <option value="1 week">1 Week</option>
                 <option value="2 weeks">2 Weeks</option>
                 <option value="4 weeks">4 Weeks</option>
-                <option value="6 weeks">6 Weeks</option>
                 <option value="8 weeks">8 Weeks</option>
-                <option value="12 weeks">12 Weeks</option>
               </select>
             </div>
-            <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={generating}
-                onClick={handleGenerateCourse}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {generating ? 'Generating...' : 'Generate'}
-              </button>
-            </div>
-            {error && <p className="text-red-500">{error}</p>}
-          </form>
-        )}
+          </div>
+        </div>
+
+        <div className="border-t border-white/10 p-4 bg-black/20 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+            disabled={generating}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleGenerateCourse}
+            disabled={generating}
+            className="px-6 py-2 rounded-lg text-white font-medium transition-all duration-300
+              bg-gradient-to-r from-purple-600 to-blue-600
+              hover:from-purple-700 hover:to-blue-700
+              disabled:opacity-50 disabled:cursor-not-allowed
+              flex items-center gap-2"
+          >
+            {generating ? (
+              <>
+                <LoadingSpinner size={5} />
+                Generating...
+              </>
+            ) : (
+              'Generate'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

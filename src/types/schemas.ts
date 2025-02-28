@@ -6,7 +6,7 @@ export interface CourseStructure {
   modules: {
     title: string;
     lessons: {
-      title: string;
+      lesson_title: string;
       description: string;
     }[];
   }[];
@@ -37,8 +37,8 @@ export interface QuizStructure {
 
 // Lesson Types
 export interface LessonStructure {
-  title: string;
-  moduleTitle: string;
+  lesson_title: string;
+  module_title: string;
   objectives: string[];
   keyConcepts: string[];
   explanation: string;
@@ -84,7 +84,7 @@ export const courseSchema = {
               items: {
                 type: "object",
                 properties: {
-                  title: {
+                  lesson_title: {
                     type: "string",
                     description: "Title of the lesson"
                   },
@@ -93,7 +93,7 @@ export const courseSchema = {
                     description: "Brief description of the lesson content"
                   }
                 },
-                required: ["title", "description"]
+                required: ["lesson_title", "description"]
               }
             }
           },
@@ -203,11 +203,11 @@ export const lessonSchema = {
   parameters: {
     type: "object",
     properties: {
-      title: {
+      lesson_title: {
         type: "string",
         description: "The title of the lesson"
       },
-      moduleTitle: {
+      module_title: {
         type: "string",
         description: "The title of the module this lesson belongs to"
       },
@@ -252,6 +252,6 @@ export const lessonSchema = {
         description: "A concise summary of the lesson"
       }
     },
-    required: ["title", "moduleTitle", "objectives", "keyConcepts", "explanation", "examples", "exercises", "summary"]
+    required: ["lesson_title", "module_title", "objectives", "keyConcepts", "explanation", "examples", "exercises", "summary"]
   }
 };

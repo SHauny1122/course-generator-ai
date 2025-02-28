@@ -6,6 +6,7 @@ import { generateLesson } from '../utils/openai';
 import { PDFDownloadButton } from '../utils/pdfGenerator';
 import LoadingSpinner from './LoadingSpinner';
 import { useSubscriptionContext } from '../contexts/SubscriptionContext';
+import { checkFreeTierLimits } from '../utils/openai';
 
 interface LessonGeneratorProps {
   moduleTitle: string;
@@ -33,12 +34,14 @@ export default function LessonGenerator({ moduleTitle, lessonTitle, onClose, ref
       return;
     }
 
-    if (!canUse('tokens')) {
-      setError('You have reached your token limit. Please upgrade your plan to continue generating content.');
-      return;
-    }
-
     try {
+      // Check if user has enough tokens
+      const canUseTokens = await checkFreeTierLimits('token', 0); // We'll check actual usage after generation
+      if (!canUseTokens) {
+        setError('You have reached your monthly token limit. Please upgrade to continue generating content.');
+        return;
+      }
+
       setLoading(true);
       setError('');
       setSaveSuccess(false);

@@ -22,7 +22,11 @@ interface Feature {
   items: string[];
 }
 
-const LearnMore = () => {
+interface LearnMoreProps {
+  onBack: () => void;
+}
+
+const LearnMore = ({ onBack }: LearnMoreProps) => {
   const [showAuth, setShowAuth] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -78,6 +82,12 @@ const LearnMore = () => {
     }
 
     navigate('/dashboard');
+  };
+
+  const handleBackToHome = () => {
+    if (onBack) {
+      onBack();
+    }
   };
 
   if (showAuth) {
@@ -181,90 +191,78 @@ const LearnMore = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1E1E1E] py-16">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-20"
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Back Button */}
+        <button
+          onClick={handleBackToHome}
+          className="mb-8 flex items-center text-gray-400 hover:text-white transition-colors"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to Home
+        </button>
+
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-4">
             Transform Your Teaching with AI
           </h1>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-400">
             Whether you're an educator, trainer, or subject matter expert, our AI-powered platform
             helps you create professional courses and engaging quizzes in minutes instead of hours.
           </p>
-        </motion.div>
+        </div>
 
-        {/* Features Section */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-12 mb-20">
-          {features.map((feature, index) => (
+        {/* Pricing Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {plans.map((plan, index) => (
             <motion.div
-              key={index}
+              key={plan.name}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-[#252525] p-8 rounded-xl"
+              className={`gradient-glow relative ${
+                plan.popular ? 'border-purple-500/30' : ''
+              }`}
             >
-              <h2 className="text-2xl font-semibold text-white mb-4">{feature.title}</h2>
-              <p className="text-gray-400 mb-6">{feature.description}</p>
-              <ul className="space-y-3">
-                {feature.items.map((item, itemIndex) => (
-                  <li key={itemIndex} className="flex items-start text-gray-300">
-                    <svg className="w-5 h-5 text-blue-500 mr-3 mt-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Pricing Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="mb-20"
-        >
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Simple, Transparent Pricing</h2>
-          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {plans.map((plan, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ scale: 1.02 }}
-                className={`bg-[#252525] p-8 rounded-xl border-2 ${
-                  plan.popular ? 'border-blue-500' : 'border-gray-700'
-                }`}
-              >
-                {plan.popular && (
-                  <span className="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-1 rounded-full shadow-lg">
                     Most Popular
                   </span>
-                )}
-                <h3 className="text-2xl font-bold text-white mt-4">{plan.name}</h3>
-                <div className="mt-4 mb-6">
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
+                </div>
+              )}
+
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-4">{plan.name}</h3>
+                <div className="flex items-baseline mb-8">
+                  <span className="text-5xl font-extrabold text-white">{plan.price}</span>
                   <span className="text-gray-400 ml-2">{plan.period}</span>
                 </div>
+
                 <ul className="space-y-4 mb-8">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-start text-gray-300">
-                      <svg className="w-5 h-5 text-green-500 mr-3 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center text-gray-300">
+                      <svg className="w-5 h-5 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {feature}
                     </li>
                   ))}
                 </ul>
+
                 {plan.price === "0" ? (
                   <button
                     onClick={handleFreePlan}
-                    className="w-full py-3 rounded-lg font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600"
+                    className="w-full px-6 py-3 rounded-full text-white font-medium transition-all duration-300
+                      bg-gradient-to-r from-purple-600 to-blue-600
+                      hover:from-purple-500 hover:to-blue-500
+                      shadow-[0_0_20px_rgba(147,51,234,0.3)]
+                      hover:shadow-[0_0_30px_rgba(147,51,234,0.5)]
+                      hover:-translate-y-1
+                      animate-glow"
                   >
                     {plan.buttonText}
                   </button>
@@ -275,52 +273,44 @@ const LearnMore = () => {
                     onSuccess={handleSubscriptionSuccess}
                   />
                 ) : null}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-24">
+          <h2 className="text-3xl font-bold text-center text-white mb-12">
+            Everything you need to create amazing courses
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="gradient-glow p-8"
+              >
+                <h3 className="text-2xl font-bold text-white mb-4">{feature.title}</h3>
+                <p className="text-gray-400 mb-6">{feature.description}</p>
+                <ul className="space-y-3">
+                  {feature.items.map((item, idx) => (
+                    <li key={idx} className="flex items-center text-gray-300">
+                      <svg className="w-5 h-5 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </motion.div>
             ))}
           </div>
-        </motion.div>
-
-        {/* FAQ Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="max-w-3xl mx-auto text-center"
-        >
-          <h2 className="text-3xl font-bold text-white mb-12">Frequently Asked Questions</h2>
-          <div className="space-y-8 text-center">
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-2">How does the course generator work?</h3>
-              <p className="text-gray-400">Our AI analyzes your topic, audience, and duration requirements to create a structured course outline. It then generates detailed lesson content, complete with examples, exercises, and quizzes.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-2">Can I edit the generated content?</h3>
-              <p className="text-gray-400">Yes! While our AI creates high-quality content, you have full control to edit, customize, and refine any generated courses or quizzes to match your exact needs.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-white mb-2">What payment methods do you accept?</h3>
-              <p className="text-gray-400">We accept PayPal for all our premium plans, making it easy and secure to upgrade your account from anywhere in the world.</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* CTA Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-center mt-20"
-        >
-          <h2 className="text-3xl font-bold text-white mb-6">Ready to Transform Your Teaching?</h2>
-          <p className="text-xl text-gray-400 mb-8">Join thousands of educators using our platform to create amazing learning experiences.</p>
-          <button
-            onClick={() => setShowAuth(true)}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg text-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Get Started Now
-          </button>
-        </motion.div>
+        </div>
       </div>
+
+      {showAuth && <Auth onClose={() => setShowAuth(false)} selectedPlan={selectedPlan} />}
     </div>
   );
 };

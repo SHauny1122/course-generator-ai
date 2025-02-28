@@ -9,40 +9,42 @@ import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import { Analytics } from '@vercel/analytics/react';
+import './styles/animations.css';
+
+// Version of the app - increment this when making major UI changes
+const APP_VERSION = '2.0.1';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
+    // Check if we need to force a reload for the new version
+    const lastVersion = localStorage.getItem('appVersion');
+    if (lastVersion !== APP_VERSION) {
+      localStorage.setItem('appVersion', APP_VERSION);
+      if (lastVersion) { // Only reload if there was a previous version
+        window.location.reload();
+        return;
+      }
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#1E1E1E] flex items-center justify-center">
-        <div className="text-white text-xl animate-pulse">Loading...</div>
-      </div>
-    );
-  }
-
   return (
-    <Router>
-      <SubscriptionProvider>
-        <div className="min-h-screen flex flex-col bg-[#1E1E1E]">
+    <SubscriptionProvider>
+      <Router>
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A]">
           <RoutesComponent>
             <Route
               path="/"
@@ -50,7 +52,7 @@ function App() {
                 session ? (
                   <Navigate to="/dashboard" replace />
                 ) : (
-                  <LandingPage />
+                  <LandingPage key="landing" />
                 )
               }
             />
@@ -58,21 +60,21 @@ function App() {
               path="/dashboard"
               element={
                 session ? (
-                  <Dashboard />
+                  <Dashboard key={session.user.id} />
                 ) : (
                   <Navigate to="/" replace />
                 )
               }
             />
-            <Route path="/learn-more" element={<LearnMore />} />
+            <Route path="/learn-more" element={<LearnMore onBack={() => {}} />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </RoutesComponent>
           <Footer />
-          <Analytics />
         </div>
-      </SubscriptionProvider>
-    </Router>
+      </Router>
+      <Analytics />
+    </SubscriptionProvider>
   );
 }
 

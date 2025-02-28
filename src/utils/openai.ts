@@ -14,28 +14,138 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true // Only for demo, in production we should use server-side calls
 });
 
-async function updateTokenUsage(tokenCount: number) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+// Free tier limits
+const FREE_TIER_LIMITS = {
+  MONTHLY_TOKENS: 5000,
+  MONTHLY_COURSES: 5,
+  MONTHLY_QUIZZES: 10
+};
 
-  const { data: subscription, error: fetchError } = await supabase
+// Check if user has exceeded free tier limits
+export async function checkFreeTierLimits(type: 'token' | 'course' | 'quiz', amount: number = 1): Promise<boolean> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: subscription, error } = await supabase
     .from('subscriptions')
-    .select('tokens_used')
+    .select('*')
     .eq('user_id', user.id)
     .single();
 
-  if (fetchError) {
-    console.error('Error fetching token usage:', fetchError);
+  if (error) {
+    console.error('Error fetching subscription:', error);
+    return false;
+  }
+
+  // If not free tier, allow everything
+  if (subscription.tier !== 'free') return true;
+
+  // Check limits based on type
+  switch (type) {
+    case 'token':
+      return (subscription.tokens_used + amount) <= FREE_TIER_LIMITS.MONTHLY_TOKENS;
+    case 'course':
+      return (subscription.courses_used + amount) <= FREE_TIER_LIMITS.MONTHLY_COURSES;
+    case 'quiz':
+      return (subscription.quizzes_used + amount) <= FREE_TIER_LIMITS.MONTHLY_QUIZZES;
+    default:
+      return false;
+  }
+}
+
+// Update usage counts
+export async function updateUsage(type: 'token' | 'course' | 'quiz', amount: number = 1) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: subscription } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  const updateData = {
+    [type === 'token' ? 'tokens_used' : 
+     type === 'course' ? 'courses_used' : 
+     'quizzes_used']: (subscription?.[type === 'token' ? 'tokens_used' : 
+                                   type === 'course' ? 'courses_used' : 
+                                   'quizzes_used'] || 0) + amount
+  };
+
+  const { error } = await supabase
+    .from('subscriptions')
+    .update(updateData)
+    .eq('user_id', user.id);
+
+  if (error) {
+    console.error(`Error updating ${type} usage:`, error);
+  }
+}
+
+async function updateTokenUsage(tokenCount: number) {
+  const canUseTokens = await checkFreeTierLimits('token', tokenCount);
+  if (!canUseTokens) {
+    throw new Error('Free tier token limit exceeded. Please upgrade to continue generating content.');
+  }
+  await updateUsage('token', tokenCount);
+}
+
+async function updateCourseUsage(courseCount: number) {
+  const canUseCourses = await checkFreeTierLimits('course', courseCount);
+  if (!canUseCourses) {
+    throw new Error('Free tier course limit exceeded. Please upgrade to continue generating content.');
+  }
+  await updateUsage('course', courseCount);
+}
+
+async function updateQuizUsage(quizCount: number) {
+  const canUseQuizzes = await checkFreeTierLimits('quiz', quizCount);
+  if (!canUseQuizzes) {
+    throw new Error('Free tier quiz limit exceeded. Please upgrade to continue generating content.');
+  }
+  await updateUsage('quiz', quizCount);
+}
+
+// Reset monthly usage if needed
+export async function checkAndResetMonthlyUsage() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: subscription, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching subscription:', error);
     return;
   }
 
-  const { error: updateError } = await supabase
-    .from('subscriptions')
-    .update({ tokens_used: (subscription?.tokens_used || 0) + tokenCount })
-    .eq('user_id', user.id);
+  // Only reset for free tier users
+  if (subscription.tier !== 'free') return;
 
-  if (updateError) {
-    console.error('Error updating token usage:', updateError);
+  const lastUpdated = new Date(subscription.updated_at);
+  const currentDate = new Date();
+
+  // Check if it's a new month
+  if (lastUpdated.getMonth() !== currentDate.getMonth() || 
+      lastUpdated.getFullYear() !== currentDate.getFullYear()) {
+    
+    // Reset usage counts
+    const { error: resetError } = await supabase
+      .from('subscriptions')
+      .update({
+        tokens_used: 0,
+        courses_used: 0,
+        quizzes_used: 0,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user.id);
+
+    if (resetError) {
+      console.error('Error resetting usage:', resetError);
+    }
   }
 }
 
@@ -73,6 +183,7 @@ The course should be comprehensive yet practical, with clear learning objectives
 
     // Update token usage
     await updateTokenUsage(response.usage?.total_tokens || 0);
+    await updateCourseUsage(1);
 
     const functionCall = response.choices[0].message.function_call;
     if (!functionCall || !functionCall.arguments) {
@@ -206,6 +317,7 @@ Ensure questions are appropriate for the ${difficulty} level and cover different
 
     // Update token usage
     await updateTokenUsage(response.usage?.total_tokens || 0);
+    await updateQuizUsage(1);
 
     const functionCall = response.choices[0].message.function_call;
     if (!functionCall || !functionCall.arguments) {

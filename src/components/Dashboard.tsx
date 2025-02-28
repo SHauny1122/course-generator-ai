@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
 import { supabase } from '../lib/supabaseClient';
-import { exportCourseToText } from '../utils/textExporter';
-import { useNavigate } from 'react-router-dom';
 import CourseGenerator from './CourseGenerator';
-import QuizGenerator from './QuizGenerator';
 import LessonGenerator from './LessonGenerator';
+import '../styles/animations.css';
 
 interface Course {
   id: string;
+  user_id: string;
   title: string;
   content: string;
-  shared?: boolean;
-  share_url?: string;
+  created_at: string;
 }
 
 interface CourseContent {
@@ -21,379 +17,476 @@ interface CourseContent {
   description: string;
   modules: {
     title: string;
-    description?: string;
+    description: string;
     lessons: {
-      title: string;
-      description?: string;
+      lesson_title: string;
+      description: string;
     }[];
   }[];
 }
 
-interface CourseCardProps {
-  course: Course;
-  onDelete: (id: string) => void;
-  onClick: () => void;
+interface Lesson {
+  id: string;
+  user_id: string;
+  module_title: string;
+  lesson_title: string;
+  content: string;
+  created_at: string;
 }
 
-const CourseCard = ({ course, onDelete, onClick }: CourseCardProps) => {
-  let courseContent: CourseContent | null = null;
+interface UsageStats {
+  tokensUsed: number;
+  coursesUsed: number;
+  quizzesUsed: number;
+  tier: string;
+}
 
-  try {
-    courseContent = JSON.parse(course.content);
-  } catch (error) {
-    console.error('Error parsing course content:', error);
-    return null;
+const LIMITS = {
+  free: {
+    tokens: 5000,
+    courses: 5,
+    quizzes: 10
   }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-[#252525] p-6 rounded-xl shadow-lg hover:bg-[#2a2a2a] transition-colors cursor-pointer"
-      onClick={onClick}
-    >
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-1">{courseContent?.title}</h3>
-        <div className="prose prose-invert max-w-none text-sm line-clamp-3">
-          <ReactMarkdown>{courseContent?.description || ''}</ReactMarkdown>
-        </div>
-      </div>
-      
-      <div className="mt-4 flex gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            exportCourseToText(course);
-          }}
-          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
-        >
-          Download
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(course.id);
-          }}
-          className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-        >
-          Delete
-        </button>
-      </div>
-    </motion.div>
-  );
 };
 
-const CourseView = ({ 
-  course, 
-  onClose,
-  onGenerateLesson 
-}: { 
-  course: Course; 
-  onClose: () => void;
-  onGenerateLesson: (moduleTitle: string, lessonTitle: string) => void;
-}) => {
-  const [selectedModule, setSelectedModule] = useState<number | null>(null);
-  let courseContent: CourseContent;
+function Dashboard() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [email, setEmail] = useState<string>('');
+  const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [showLessonGenerator, setShowLessonGenerator] = useState<{moduleTitle: string, lessonTitle: string} | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
 
-  try {
-    courseContent = JSON.parse(course.content);
-  } catch (error) {
-    console.error('Error parsing course content:', error);
-    return null;
-  }
+  useEffect(() => {
+    fetchCourses();
+    fetchLessons();
+    fetchUserEmail();
+    fetchUsageStats();
+  }, []);
+
+  const fetchUserEmail = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: courses, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (courses) setCourses(courses);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  const fetchLessons = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: lessons, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (lessons) setLessons(lessons);
+    } catch (error) {
+      console.error('Error fetching lessons:', error);
+    }
+  };
+
+  const fetchUsageStats = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching usage stats:', error);
+      return;
+    }
+
+    setUsageStats({
+      tokensUsed: data.tokens_used || 0,
+      coursesUsed: data.courses_used || 0,
+      quizzesUsed: data.quizzes_used || 0,
+      tier: data.tier
+    });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const handleGenerateCourse = (_course: CourseContent) => {
+    fetchCourses();
+    fetchUsageStats();
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">{courseContent.title}</h1>
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-          >
-            Back to Dashboard
-          </button>
+    <div className="min-h-screen bg-[#1A1F2E] text-white">
+      <header className="p-4 backdrop-blur-lg bg-black/20 border-b border-white/10">
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4">
+          <h1 className="text-3xl font-bold">
+            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow">Course</span>{' '}
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent animate-glow">Gen</span>
+          </h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowGenerator(true)}
+              className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
+                bg-gradient-to-r from-purple-600 to-blue-600
+                hover:from-purple-500 hover:to-blue-400
+                shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+            >
+              Generate Course
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-300">{email}</span>
+              <button
+                onClick={handleSignOut}
+                className="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {usageStats && usageStats.tier === 'free' && (
+          <div className="container mx-auto mb-8">
+            <div className="bg-gradient-to-br from-[#2A2F4E] to-[#1E293B] rounded-xl p-6">
+              <h2 className="text-xl font-bold text-white mb-4">Free Tier Usage</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Tokens Usage */}
+                <div className="bg-[#1E293B]/50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300">Tokens Used</span>
+                    <span className="text-sm text-gray-400">{usageStats.tokensUsed} / {LIMITS.free.tokens}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((usageStats.tokensUsed / LIMITS.free.tokens) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Courses Usage */}
+                <div className="bg-[#1E293B]/50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300">Courses Created</span>
+                    <span className="text-sm text-gray-400">{usageStats.coursesUsed} / {LIMITS.free.courses}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((usageStats.coursesUsed / LIMITS.free.courses) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Quizzes Usage */}
+                <div className="bg-[#1E293B]/50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300">Quizzes Created</span>
+                    <span className="text-sm text-gray-400">{usageStats.quizzesUsed} / {LIMITS.free.quizzes}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((usageStats.quizzesUsed / LIMITS.free.quizzes) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div className="container mx-auto">
+          <h2 className="text-2xl font-bold text-white mb-6">Your Courses</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {courses.map((course) => {
+              const content = JSON.parse(course.content) as CourseContent;
+              return (
+                <div
+                  key={course.id}
+                  className="bg-gradient-to-br from-[#2A2F4E] to-[#1E293B] rounded-xl p-6 hover:shadow-lg transition-all duration-300"
+                >
+                  <h3 className="text-xl font-bold mb-4">{content.title}</h3>
+                  <p className="text-gray-300 mb-6 line-clamp-3">{content.description}</p>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedCourse(content)}
+                        className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
+                          bg-gradient-to-r from-purple-600 to-blue-600
+                          hover:from-purple-500 hover:to-blue-400
+                          shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                          hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
+                          text-sm"
+                      >
+                        View Course
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Format course content as plain text
+                          const text = `${content.title}\n\n${content.description}\n\n${content.modules
+                            .map(
+                              (module) =>
+                                `${module.title}\n${module.description || ''}\n\n${module.lessons
+                                  .map((lesson) => `${lesson.lesson_title}\n${lesson.description || ''}`)
+                                  .join('\n\n')}`
+                            )
+                            .join('\n\n')}`;
+                          
+                          // Download as text file
+                          const blob = new Blob([text], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${content.title}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
+                          bg-gradient-to-r from-blue-600 to-blue-500
+                          hover:from-blue-500 hover:to-blue-400
+                          shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                          hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]
+                          text-sm"
+                      >
+                        Download
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      {new Date(course.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="bg-[#252525] p-6 rounded-xl shadow-lg">
-          <div className="prose prose-invert max-w-none mb-6">
-            <ReactMarkdown>{courseContent.description}</ReactMarkdown>
-          </div>
-
-          <div className="space-y-4">
-            {courseContent.modules.map((module, moduleIndex) => (
+        <div className="container mx-auto mt-12">
+          <h2 className="text-2xl font-bold text-white mb-6">Your Lessons</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {lessons.map((lesson) => (
               <div
-                key={moduleIndex}
-                className="bg-gray-800 rounded-lg overflow-hidden"
+                key={lesson.id}
+                className="bg-gradient-to-br from-[#2A2F4E] to-[#1E293B] rounded-lg p-4 hover:shadow-lg transition-all duration-300 relative overflow-hidden group"
               >
-                <div
-                  className="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-700"
-                  onClick={() => setSelectedModule(selectedModule === moduleIndex ? null : moduleIndex)}
-                >
-                  <h3 className="text-lg font-semibold text-white">{module.title}</h3>
-                  <svg
-                    className={`w-5 h-5 text-gray-400 transform transition-transform ${
-                      selectedModule === moduleIndex ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                {/* Purple glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Book icon */}
+                <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
+                  <svg className="w-16 h-16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 2H6c-1.206 0-3 .799-3 3v14c0 2.201 1.794 3 3 3h15v-2H6.012C5.55 19.988 5 19.806 5 19s.55-.988 1.012-1H21V4c0-1.103-.897-2-2-2zm0 14H6c-.499 0-.999.077-1.479.231-.271-.393-.421-.851-.421-1.231 0-1.103.897-2 2-2h12.875L19 13V2l1 1v13zm-2-7H8V7h9v2zm0 4H8v-2h9v2z" />
                   </svg>
                 </div>
 
-                {selectedModule === moduleIndex && (
-                  <div className="p-4 bg-gray-700">
-                    {module.description && (
-                      <p className="text-gray-300 mb-4">{module.description}</p>
-                    )}
-                    <div className="space-y-2">
-                      {module.lessons.map((lesson, lessonIndex) => (
-                        <div
-                          key={lessonIndex}
-                          className="flex items-center justify-between p-2 rounded bg-gray-600"
-                        >
-                          <span className="text-white">{lesson.title}</span>
-                          <button
-                            onClick={() => onGenerateLesson(module.title, lesson.title)}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                          >
-                            Generate Lesson
-                          </button>
-                        </div>
-                      ))}
+                <div className="relative">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="text-lg font-bold mb-1">{lesson.lesson_title}</h3>
+                      <p className="text-purple-300/80 text-xs mb-2">Module: {lesson.module_title}</p>
                     </div>
                   </div>
-                )}
+
+                  <div className="prose prose-invert max-w-none mb-4">
+                    <div className="line-clamp-2 text-sm text-gray-300/80">{lesson.content}</div>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setSelectedLesson(lesson)}
+                        className="px-3 py-1.5 rounded text-white font-medium transition-all duration-300
+                          bg-gradient-to-r from-purple-600 to-blue-600
+                          hover:from-purple-500 hover:to-blue-400
+                          shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                          hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
+                          text-xs"
+                      >
+                        View Lesson
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Download lesson as text file
+                          const text = `${lesson.lesson_title}\n\nModule: ${lesson.module_title}\n\n${lesson.content}`;
+                          const blob = new Blob([text], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${lesson.lesson_title}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="px-3 py-1.5 rounded text-white font-medium transition-all duration-300
+                          bg-gradient-to-r from-blue-600 to-blue-500
+                          hover:from-blue-500 hover:to-blue-400
+                          shadow-[0_0_10px_rgba(59,130,246,0.3)]
+                          hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]
+                          text-xs"
+                      >
+                        Download
+                      </button>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {new Date(lesson.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
+      </main>
 
-        <div className="mt-6 flex gap-4">
-          <button
-            onClick={() => exportCourseToText(course)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Download Course
-          </button>
+      {showGenerator && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg">
+            <CourseGenerator
+              onClose={() => setShowGenerator(false)}
+              onGenerate={handleGenerateCourse}
+            />
+          </div>
         </div>
-      </div>
-    </div>
-  );
-};
+      )}
 
-const Dashboard = () => {
-  const [showGenerator, setShowGenerator] = useState(false);
-  const [showQuizGenerator, setShowQuizGenerator] = useState(false);
-  const [savedCourses, setSavedCourses] = useState<Course[]>([]);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [showLessonGenerator, setShowLessonGenerator] = useState(false);
-  const [selectedModuleTitle, setSelectedModuleTitle] = useState('');
-  const [selectedLessonTitle, setSelectedLessonTitle] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string>('');
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const initialize = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      setUserEmail(user.email || '');
-
-      // Check if user has a subscription
-      const { data: existingSub } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      // If no subscription exists, create one
-      if (!existingSub) {
-        const { error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .insert([
-            {
-              user_id: user.id,
-              tier: 'free',
-              courses_used: 0,
-              quizzes_used: 0,
-              tokens_used: 0,
-              active: true,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-          ])
-          .select()
-          .single();
-
-        if (subscriptionError) {
-          console.error('Error creating subscription:', subscriptionError);
-        }
-      }
-
-      // Only fetch courses after subscription is checked/created
-      await fetchSavedCourses();
-    };
-
-    initialize();
-  }, []);
-
-  const fetchSavedCourses = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: courses, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching courses:', error);
-      return;
-    }
-
-    setSavedCourses(courses || []);
-    setLoading(false);
-  };
-
-  const handleGenerateLesson = (moduleTitle: string, lessonTitle: string) => {
-    setSelectedModuleTitle(moduleTitle);
-    setSelectedLessonTitle(lessonTitle);
-    setShowLessonGenerator(true);
-  };
-
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('courses')
-        .delete()
-        .eq('id', courseId);
-
-      if (error) throw error;
-      await fetchSavedCourses();
-    } catch (error) {
-      console.error('Error deleting course:', error);
-      alert('Failed to delete course. Please try again.');
-    }
-  };
-
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-      return;
-    }
-    navigate('/login');
-  };
-
-  const renderHeader = () => {
-    return (
-      <div className="flex justify-between items-center mb-8">
-        <span className="text-gray-400">{userEmail}</span>
-        <button
-          onClick={handleSignOut}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Sign Out
-        </button>
-      </div>
-    );
-  };
-
-  if (showGenerator) {
-    return (
-      <CourseGenerator 
-        onClose={() => setShowGenerator(false)}
-        onSuccess={() => {
-          setShowGenerator(false);
-          fetchSavedCourses();
-        }}
-        refreshCourses={fetchSavedCourses}
-      />
-    );
-  }
-
-  if (showQuizGenerator) {
-    return (
-      <QuizGenerator
-        onClose={() => setShowQuizGenerator(false)}
-        onSuccess={() => {
-          setShowQuizGenerator(false);
-        }}
-        refreshQuizzes={async () => {}}
-      />
-    );
-  }
-
-  if (showLessonGenerator && selectedModuleTitle && selectedLessonTitle) {
-    return (
-      <LessonGenerator
-        moduleTitle={selectedModuleTitle}
-        lessonTitle={selectedLessonTitle}
-        onClose={() => {
-          setShowLessonGenerator(false);
-          setSelectedModuleTitle('');
-          setSelectedLessonTitle('');
-        }}
-        refreshLessons={async () => {}}
-      />
-    );
-  }
-
-  if (selectedCourse) {
-    return (
-      <CourseView
-        course={selectedCourse}
-        onClose={() => setSelectedCourse(null)}
-        onGenerateLesson={handleGenerateLesson}
-      />
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      {renderHeader()}
-      
-      <div className="space-y-12">
-        <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-white">Your Courses</h2>
+      {selectedCourse && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-4xl bg-[#1E293B] rounded-xl p-6 relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setShowGenerator(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              onClick={() => setSelectedCourse(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white"
             >
-              Create New Course
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              <div className="text-gray-400">Loading courses...</div>
-            ) : savedCourses.length === 0 ? (
-              <div className="text-gray-400">No courses yet. Create your first course!</div>
-            ) : (
-              savedCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  onDelete={handleDeleteCourse}
-                  onClick={() => setSelectedCourse(course)}
-                />
-              ))
-            )}
+            <h2 className="text-2xl font-bold mb-4">{selectedCourse.title}</h2>
+            <p className="text-gray-300 mb-8">{selectedCourse.description}</p>
+            <div className="space-y-6">
+              {selectedCourse.modules.map((module, moduleIndex) => (
+                <div key={moduleIndex} className="bg-black/20 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold">{module.title}</h3>
+                    <button
+                      onClick={() => setShowLessonGenerator({
+                        moduleTitle: module.title,
+                        lessonTitle: `Lesson on ${module.title}`
+                      })}
+                      className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
+                        bg-gradient-to-r from-purple-600 to-blue-600
+                        hover:from-purple-500 hover:to-blue-400
+                        shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                        hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
+                        text-sm"
+                    >
+                      Generate Lesson
+                    </button>
+                  </div>
+                  {module.description && (
+                    <p className="text-gray-300 mb-4">{module.description}</p>
+                  )}
+                  <div className="space-y-4">
+                    {module.lessons.map((lesson, lessonIndex) => (
+                      <div key={lessonIndex} className="bg-black/20 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold mb-2">{lesson.lesson_title}</h4>
+                        {lesson.description && (
+                          <p className="text-gray-300">{lesson.description}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {selectedLesson && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#1E293B] rounded-xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">{selectedLesson.lesson_title}</h2>
+                <p className="text-purple-300/80">Module: {selectedLesson.module_title}</p>
+              </div>
+              <button
+                onClick={() => setSelectedLesson(null)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="prose prose-invert max-w-none">
+              {selectedLesson.content.split('\n').map((paragraph: string, index: number) => (
+                <p key={index}>{paragraph}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLessonGenerator && (
+        <LessonGenerator
+          moduleTitle={showLessonGenerator.moduleTitle}
+          lessonTitle={showLessonGenerator.lessonTitle}
+          onClose={() => setShowLessonGenerator(null)}
+          refreshLessons={fetchLessons}
+        />
+      )}
     </div>
   );
-};
+}
 
 export default Dashboard;

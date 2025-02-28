@@ -2,96 +2,31 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Auth from './Auth';
 import LearnMore from './LearnMore';
+import CourseDemo from './CourseDemo';
 import '../styles/animations.css';
 import SEO from './SEO';
 
-const FeatureCard = ({ title, description, index }: { title: string; description: string; index: number }) => {
-  const variants = {
-    hidden: { y: 50 },
-    visible: (i: number) => ({
-      y: 0,
-      transition: {
-        delay: i * 0.2,
-        duration: 0.8,
-        ease: "easeOut"
-      }
-    })
-  };
-
+const FeatureCard = ({ title, description, items, index }: { title: string; description: string; items: string[]; index: number }) => {
   return (
-    <motion.div 
-      custom={index}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      variants={variants}
-      whileHover={{ 
-        scale: 1.03,
-        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)",
-        transition: { type: "spring", stiffness: 300 }
-      }}
-      className="bg-gradient-to-b from-[#252525] to-[#2a2a2a] p-8 rounded-xl transform-gpu border border-gray-800 hover:border-gray-700 transition-colors shadow-lg"
+    <motion.div
+      key={index}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="gradient-glow p-8 hover:transform hover:scale-105 transition-all duration-300 cursor-pointer"
     >
-      <div className="relative overflow-hidden">
-        <motion.div
-          whileHover={{ scale: 1.2 }}
-          className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500 opacity-5 rounded-full blur-2xl"
-        />
-        <h2 className="text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-4 relative z-10">{title}</h2>
-        <p className="text-gray-400 relative z-10 leading-relaxed">{description}</p>
-      </div>
-    </motion.div>
-  );
-};
-
-const PricingCard = ({ tier, price, features, popular, onAction, actionText }: any) => {
-  return (
-    <motion.div 
-      initial={{ scale: 0.9 }}
-      whileInView={{ scale: 1 }}
-      viewport={{ once: true }}
-      whileHover={{ 
-        y: -10,
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        transition: { type: "spring", stiffness: 300 }
-      }}
-      className={`bg-[#1E1E1E] p-8 rounded-xl ${popular ? 'border-2 border-blue-500' : 'border border-gray-700'} relative transform-gpu`}
-    >
-      {popular && (
-        <motion.div
-          initial={{ x: 100 }}
-          animate={{ x: 0 }}
-          className="absolute top-0 right-0 bg-blue-500 text-white px-4 py-1 rounded-bl-lg rounded-tr-lg text-sm font-medium"
-        >
-          POPULAR
-        </motion.div>
-      )}
-      <h3 className="text-2xl font-bold text-white mb-4">{tier}</h3>
-      <p className="text-3xl font-bold text-white mb-8">{price}<span className="text-lg font-normal text-gray-400">/month</span></p>
-      <ul className="space-y-4 mb-8">
-        {features.map((feature: string, index: number) => (
-          <motion.li 
-            key={index}
-            initial={{ x: -20 }}
-            whileInView={{ x: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="text-gray-400 flex items-center"
-          >
-            <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <h3 className="text-2xl font-bold text-white mb-4">{title}</h3>
+      <p className="text-gray-400 mb-6">{description}</p>
+      <ul className="space-y-3">
+        {items.map((item, idx) => (
+          <li key={idx} className="flex items-center text-gray-300">
+            <svg className="w-5 h-5 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
-            {feature}
-          </motion.li>
+            {item}
+          </li>
         ))}
       </ul>
-      <motion.button 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onAction}
-        className={`w-full px-6 py-3 ${popular ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'} text-white rounded-lg font-medium transition-colors`}
-      >
-        {actionText}
-      </motion.button>
     </motion.div>
   );
 };
@@ -100,18 +35,37 @@ const LandingPage = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showLearnMore, setShowLearnMore] = useState(false);
 
+  const handlePricingClick = () => {
+    setShowLearnMore(true);
+  };
+
   const features = [
     {
       title: "GPT-4 Powered Course Generation",
-      description: "Create professional courses instantly using OpenAI's most advanced AI. Perfect for any subject or skill level."
+      description: "Create professional courses instantly using OpenAI's most advanced AI. Perfect for any subject or skill level.",
+      items: [
+        "Create courses in minutes",
+        "AI-powered content generation",
+        "Perfect for any subject or skill level"
+      ]
     },
     {
       title: "Smart Lesson Planning",
-      description: "Generate detailed, engaging lessons automatically. Save hours of preparation time with AI-powered content."
+      description: "Generate detailed, engaging lessons automatically. Save hours of preparation time with AI-powered content.",
+      items: [
+        "Automated lesson planning",
+        "Engaging lessons for students",
+        "Save hours of preparation time"
+      ]
     },
     {
       title: "Interactive Quiz Creation",
-      description: "Create engaging quizzes to test knowledge retention. Our AI ensures questions are relevant and challenging."
+      description: "Create engaging quizzes to test knowledge retention. Our AI ensures questions are relevant and challenging.",
+      items: [
+        "Create quizzes in minutes",
+        "AI-powered question generation",
+        "Relevant and challenging questions"
+      ]
     }
   ];
 
@@ -128,7 +82,8 @@ const LandingPage = () => {
         "No credit card required"
       ],
       popular: false,
-      actionText: "Start Free"
+      actionText: "Start Free",
+      onAction: handlePricingClick
     },
     {
       tier: "Basic",
@@ -142,7 +97,8 @@ const LandingPage = () => {
         "24-hour support response"
       ],
       popular: false,
-      actionText: "Get Basic"
+      actionText: "Get Basic",
+      onAction: handlePricingClick
     },
     {
       tier: "Pro",
@@ -159,103 +115,220 @@ const LandingPage = () => {
         "12-hour premium support"
       ],
       popular: true,
-      actionText: "Go Pro"
+      actionText: "Go Pro",
+      onAction: handlePricingClick
     }
   ];
 
   if (showAuth) {
-    return <Auth />;
+    return <Auth onClose={() => setShowAuth(false)} />;
   }
 
   if (showLearnMore) {
-    return <LearnMore />;
+    return <LearnMore onBack={() => setShowLearnMore(false)} />;
   }
 
   return (
-    <div className="min-h-screen bg-[#1E1E1E] text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white">
       <SEO />
-      <div className="relative">
-        {/* Hero Section */}
-        <div className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-4xl mx-auto">
-            <motion.h1 
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 text-transparent bg-clip-text"
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        {/* Gradient Orbs */}
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative">
+          <div className="text-center">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-6"
             >
-              Create Unlimited Courses with GPT-4 AI
+              Create Professional Courses with AI
             </motion.h1>
-            <motion.p 
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-xl text-gray-400 mb-8 leading-relaxed"
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-xl text-gray-400 mb-8"
             >
-              Transform your expertise into professional courses, lessons, and quizzes instantly. 
-              Powered by GPT-4, our AI creates engaging content in seconds. Start free, upgrade for unlimited access.
+              Transform your expertise into engaging courses in minutes with our AI-powered platform
             </motion.p>
-            <motion.div 
-              initial={{ y: 20 }}
-              animate={{ y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="flex gap-6 justify-center mb-24"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <motion.button 
-                whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(37, 99, 235, 0.3)" }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => setShowAuth(true)}
-                className="px-10 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-lg font-medium transition-all duration-300 shadow-lg hover:shadow-2xl"
+                className="px-8 py-4 rounded-full text-white font-medium transition-all duration-300
+                  bg-gradient-to-r from-purple-600 to-blue-600
+                  hover:from-purple-500 hover:to-blue-500
+                  shadow-[0_0_20px_rgba(147,51,234,0.3)]
+                  hover:shadow-[0_0_30px_rgba(147,51,234,0.5)]
+                  hover:-translate-y-1
+                  animate-glow"
               >
-                Get Started
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.05, borderColor: "rgb(156, 163, 175)" }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowLearnMore(true)}
-                className="px-10 py-4 text-white rounded-xl text-lg font-medium border-2 border-gray-700 hover:border-gray-500 transition-all duration-300 backdrop-blur-sm bg-[#25252510]"
+                Get Started Free
+              </button>
+              <button
+                onClick={handlePricingClick}
+                className="px-8 py-4 rounded-full text-gray-300 font-medium transition-all duration-300
+                  bg-white/5 hover:bg-white/10
+                  border border-white/10 hover:border-white/20
+                  hover:-translate-y-1"
               >
-                Learn More
-              </motion.button>
+                View Pricing
+              </button>
             </motion.div>
           </div>
         </div>
+      </div>
 
-        {/* Features Grid */}
-        <div className="py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            <motion.h2 
-              initial={{ y: 20 }}
-              whileInView={{ y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl font-bold text-white text-center mb-12"
-            >
-              What You Can Do
-            </motion.h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
-                <FeatureCard key={index} {...feature} index={index} />
-              ))}
-            </div>
-          </div>
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-4">
+            Features that empower you
+          </h2>
+          <p className="text-xl text-gray-400">
+            Everything you need to create professional courses with ease
+          </p>
         </div>
 
-        {/* Pricing Section */}
-        <div className="py-20 bg-[#252525]">
-          <div className="max-w-6xl mx-auto px-6">
-            <motion.h2 
-              initial={{ y: 20 }}
-              whileInView={{ y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl font-bold text-white text-center mb-12"
-            >
-              Simple, Transparent Pricing
-            </motion.h2>
-            <div className="grid md:grid-cols-2 gap-8">
-              {pricingTiers.map((tier, index) => (
-                <PricingCard key={index} {...tier} />
-              ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <FeatureCard
+              key={index}
+              title={feature.title}
+              description={feature.description}
+              items={feature.items}
+              index={index}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Screenshots Section */}
+      <div className="mt-24 relative">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-4">
+            Powerful Course Creation Tools
+          </h2>
+          <p className="text-xl text-gray-400">
+            Generate professional courses and lessons with our intuitive interface
+          </p>
+        </div>
+
+        {/* Screenshots with floating animation */}
+        <div className="flex flex-col lg:flex-row gap-12 justify-center items-center px-4 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="relative group w-full lg:w-[600px]"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+            <div className="relative">
+              <img 
+                src="/src/assets/screenshots/Untitled design (8).png" 
+                alt="Course Generation Interface" 
+                className="rounded-xl shadow-2xl w-full transform transition duration-500 hover:scale-105"
+              />
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="relative group w-full lg:w-[600px]"
+          >
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
+            <div className="relative">
+              <img 
+                src="/src/assets/screenshots/Untitled design (7).png" 
+                alt="Course Dashboard" 
+                className="rounded-xl shadow-2xl w-full transform transition duration-500 hover:scale-105"
+              />
+            </div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Demo Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-4">
+            See it in action
+          </h2>
+          <p className="text-xl text-gray-400">
+            Watch how easy it is to create a course with our AI
+          </p>
+        </div>
+        <CourseDemo />
+      </div>
+
+      {/* Pricing Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent animate-glow mb-4">
+            Simple, transparent pricing
+          </h2>
+          <p className="text-xl text-gray-400">
+            Choose the plan that works best for you
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {pricingTiers.map((tier, index) => (
+            <motion.div
+              key={tier.tier}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={`gradient-glow relative ${tier.popular ? 'border-purple-500/30' : ''}`}
+            >
+              {tier.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-purple-600 to-blue-600 text-white text-sm font-medium px-4 py-1 rounded-full shadow-lg">
+                    Most Popular
+                  </span>
+                </div>
+              )}
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-4">{tier.tier}</h3>
+                <div className="flex items-baseline mb-8">
+                  <span className="text-5xl font-extrabold text-white">{tier.price}</span>
+                  <span className="text-gray-400 ml-2">/month</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  {tier.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center text-gray-300">
+                      <svg className="w-5 h-5 text-purple-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={tier.onAction}
+                  className="w-full px-6 py-3 rounded-full text-white font-medium transition-all duration-300
+                    bg-gradient-to-r from-purple-600 to-blue-600
+                    hover:from-purple-500 hover:to-blue-500
+                    shadow-[0_0_20px_rgba(147,51,234,0.3)]
+                    hover:shadow-[0_0_30px_rgba(147,51,234,0.5)]
+                    hover:-translate-y-1
+                    animate-glow"
+                >
+                  {tier.actionText}
+                </button>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
     </div>
