@@ -123,14 +123,8 @@ export default function Auth({ onBack, onClose, selectedPlan }: AuthProps) {
     }
   };
 
-  const handleBackToHome = () => {
-    if (onBack) {
-      onBack();
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] text-white">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Back Button */}
         {onBack && (
