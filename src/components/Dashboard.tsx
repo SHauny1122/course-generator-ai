@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
 import QuizDisplay from './QuizDisplay';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import LessonGenerator from './LessonGenerator';
 import '../styles/animations.css';
 
@@ -53,10 +50,8 @@ interface UsageStats {
   courses_used: number;
   quizzes_used: number;
   lessons_used: number;
-  tier: SubscriptionTier;
+  tier: string;
 }
-
-type SubscriptionTier = 'free' | 'basic' | 'pro';
 
 const LIMITS = {
   free: {
@@ -383,47 +378,35 @@ function Dashboard() {
           <h2 className="text-2xl font-bold text-white mb-6">Your Quizzes</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quizzes.map((quiz) => (
-              <motion.div
+              <div
                 key={quiz.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className="relative group bg-[#1E293B] rounded-xl p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all"
+                className="bg-[#1E293B] rounded-xl p-6 border border-gray-700/50 hover:border-purple-500/50"
                 onClick={() => setSelectedQuiz(quiz)}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-purple-400 transition-colors">{quiz.topic}</h3>
+                <h3 className="text-xl font-semibold mb-2 text-white">{quiz.topic}</h3>
                 <p className="text-gray-400 mb-2">Difficulty: {quiz.difficulty}</p>
                 <p className="text-gray-400 mb-4 text-sm">Created on {new Date(quiz.created_at).toLocaleDateString()}</p>
                 <div className="flex gap-3">
                   <button
+                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedQuiz(quiz);
                     }}
-                    className="px-4 py-1.5 rounded-lg text-white text-sm font-medium transition-all duration-300
-                      bg-gradient-to-r from-purple-600 to-blue-600
-                      hover:from-purple-500 hover:to-blue-400
-                      shadow-[0_0_10px_rgba(147,51,234,0.3)]
-                      hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
                   >
-                    View Quiz
+                    View
                   </button>
                   <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Download functionality will be added
+                      // Handle download
                     }}
-                    className="px-4 py-1.5 rounded-lg text-white text-sm font-medium transition-all duration-300
-                      bg-gradient-to-r from-blue-600 to-purple-600
-                      hover:from-blue-500 hover:to-purple-400
-                      shadow-[0_0_10px_rgba(147,51,234,0.3)]
-                      hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
                   >
                     Download
                   </button>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
