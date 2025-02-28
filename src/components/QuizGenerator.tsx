@@ -51,11 +51,13 @@ const QuizGenerator = ({ onClose, onSuccess, refreshQuizzes }: Props) => {
       setGenerating(true);
       setError('');
 
+      // Generate the quiz content
       const quizStructure = await generateQuiz(topic, difficulty, questionCounts);
       
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Save the quiz
       const { error: quizError } = await supabase
         .from('quizzes')
         .insert({
@@ -70,7 +72,9 @@ const QuizGenerator = ({ onClose, onSuccess, refreshQuizzes }: Props) => {
 
       if (quizError) throw quizError;
 
+      // Update usage stats - this will update both tokens and quiz count
       await incrementUsage('quizzes');
+      
       refreshQuizzes();
       onSuccess();
       onClose();

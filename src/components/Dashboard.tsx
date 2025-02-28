@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import CourseGenerator from './CourseGenerator';
+import QuizGenerator from './QuizGenerator';
+import QuizDisplay from './QuizDisplay';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import LessonGenerator from './LessonGenerator';
 import '../styles/animations.css';
 
@@ -34,35 +39,66 @@ interface Lesson {
   created_at: string;
 }
 
-interface UsageStats {
-  tokensUsed: number;
-  coursesUsed: number;
-  quizzesUsed: number;
-  tier: string;
+interface Quiz {
+  id: string;
+  user_id: string;
+  topic: string;
+  difficulty: string;
+  content: string;
+  created_at: string;
 }
+
+interface UsageStats {
+  tokens_used: number;
+  courses_used: number;
+  quizzes_used: number;
+  lessons_used: number;
+  tier: SubscriptionTier;
+}
+
+type SubscriptionTier = 'free' | 'basic' | 'pro';
 
 const LIMITS = {
   free: {
     tokens: 5000,
     courses: 5,
-    quizzes: 10
+    quizzes: 10,
+    lessons: 15
+  },
+  basic: {
+    tokens: 15000,
+    courses: 15,
+    quizzes: 30,
+    lessons: 45
+  },
+  pro: {
+    tokens: Infinity,
+    courses: Infinity,
+    quizzes: Infinity,
+    lessons: Infinity
   }
 };
 
 function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showQuizGenerator, setShowQuizGenerator] = useState(false);
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [email, setEmail] = useState<string>('');
   const [selectedCourse, setSelectedCourse] = useState<CourseContent | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showLessonGenerator, setShowLessonGenerator] = useState<{moduleTitle: string, lessonTitle: string} | null>(null);
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
 
+  const navigate = useNavigate();
+  const subscriptionContext = useSubscriptionContext();
+
   useEffect(() => {
     fetchCourses();
     fetchLessons();
-    fetchUserEmail();
+    fetchQuizzes();
     fetchUsageStats();
   }, []);
 
@@ -109,14 +145,32 @@ function Dashboard() {
     }
   };
 
+  const fetchQuizzes = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setQuizzes(data || []);
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+    }
+  };
+
   const fetchUsageStats = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
 
     const { data, error } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userData.user.id)
       .single();
 
     if (error) {
@@ -124,12 +178,15 @@ function Dashboard() {
       return;
     }
 
-    setUsageStats({
-      tokensUsed: data.tokens_used || 0,
-      coursesUsed: data.courses_used || 0,
-      quizzesUsed: data.quizzes_used || 0,
-      tier: data.tier
-    });
+    if (data) {
+      setUsageStats({
+        tokens_used: data.tokens_used || 0,
+        courses_used: data.courses_used || 0,
+        quizzes_used: data.quizzes_used || 0,
+        lessons_used: data.lessons_used || 0,
+        tier: data.tier,
+      });
+    }
   };
 
   const handleSignOut = async () => {
@@ -166,6 +223,16 @@ function Dashboard() {
             >
               Generate Course
             </button>
+            <button
+              onClick={() => setShowQuizGenerator(true)}
+              className="px-4 py-2 rounded-lg text-white font-medium transition-all duration-300
+                bg-gradient-to-r from-purple-600 to-blue-600
+                hover:from-purple-500 hover:to-blue-400
+                shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+            >
+              Generate Quiz
+            </button>
             <div className="flex items-center gap-2">
               <span className="text-gray-300">{email}</span>
               <button
@@ -189,12 +256,12 @@ function Dashboard() {
                 <div className="bg-[#1E293B]/50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300">Tokens Used</span>
-                    <span className="text-sm text-gray-400">{usageStats.tokensUsed} / {LIMITS.free.tokens}</span>
+                    <span className="text-sm text-gray-400">{usageStats.tokens_used} / {LIMITS.free.tokens}</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.tokensUsed / LIMITS.free.tokens) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((usageStats.tokens_used / LIMITS.free.tokens) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -203,12 +270,12 @@ function Dashboard() {
                 <div className="bg-[#1E293B]/50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300">Courses Created</span>
-                    <span className="text-sm text-gray-400">{usageStats.coursesUsed} / {LIMITS.free.courses}</span>
+                    <span className="text-sm text-gray-400">{usageStats.courses_used} / {LIMITS.free.courses}</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.coursesUsed / LIMITS.free.courses) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((usageStats.courses_used / LIMITS.free.courses) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -217,12 +284,26 @@ function Dashboard() {
                 <div className="bg-[#1E293B]/50 rounded-lg p-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300">Quizzes Created</span>
-                    <span className="text-sm text-gray-400">{usageStats.quizzesUsed} / {LIMITS.free.quizzes}</span>
+                    <span className="text-sm text-gray-400">{usageStats.quizzes_used} / {LIMITS.free.quizzes}</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div 
                       className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((usageStats.quizzesUsed / LIMITS.free.quizzes) * 100, 100)}%` }}
+                      style={{ width: `${Math.min((usageStats.quizzes_used / LIMITS.free.quizzes) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Lessons Usage */}
+                <div className="bg-[#1E293B]/50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-300">Lessons Created</span>
+                    <span className="text-sm text-gray-400">{usageStats.lessons_used} / {LIMITS.free.lessons}</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((usageStats.lessons_used / LIMITS.free.lessons) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -241,7 +322,7 @@ function Dashboard() {
                   className="bg-gradient-to-br from-[#2A2F4E] to-[#1E293B] rounded-xl p-6 hover:shadow-lg transition-all duration-300"
                 >
                   <h3 className="text-xl font-bold mb-4">{content.title}</h3>
-                  <p className="text-gray-300 mb-6 line-clamp-3">{content.description}</p>
+                  <p className="text-gray-300 mb-6">{content.description}</p>
                   <div className="flex flex-col gap-3">
                     <div className="flex gap-2">
                       <button
@@ -299,6 +380,55 @@ function Dashboard() {
         </div>
 
         <div className="container mx-auto mt-12">
+          <h2 className="text-2xl font-bold text-white mb-6">Your Quizzes</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {quizzes.map((quiz) => (
+              <motion.div
+                key={quiz.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="relative group bg-[#1E293B] rounded-xl p-6 border border-gray-700/50 hover:border-purple-500/50 transition-all"
+                onClick={() => setSelectedQuiz(quiz)}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <h3 className="text-xl font-semibold mb-2 text-white group-hover:text-purple-400 transition-colors">{quiz.topic}</h3>
+                <p className="text-gray-400 mb-2">Difficulty: {quiz.difficulty}</p>
+                <p className="text-gray-400 mb-4 text-sm">Created on {new Date(quiz.created_at).toLocaleDateString()}</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedQuiz(quiz);
+                    }}
+                    className="px-4 py-1.5 rounded-lg text-white text-sm font-medium transition-all duration-300
+                      bg-gradient-to-r from-purple-600 to-blue-600
+                      hover:from-purple-500 hover:to-blue-400
+                      shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                      hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+                  >
+                    View Quiz
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Download functionality will be added
+                    }}
+                    className="px-4 py-1.5 rounded-lg text-white text-sm font-medium transition-all duration-300
+                      bg-gradient-to-r from-blue-600 to-purple-600
+                      hover:from-blue-500 hover:to-purple-400
+                      shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                      hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+                  >
+                    Download
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div className="container mx-auto mt-12">
           <h2 className="text-2xl font-bold text-white mb-6">Your Lessons</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {lessons.map((lesson) => (
@@ -319,7 +449,7 @@ function Dashboard() {
                 <div className="relative">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h3 className="text-lg font-bold mb-1">{lesson.lesson_title}</h3>
+                      <h3 className="text-lg font-bold">{lesson.lesson_title}</h3>
                       <p className="text-purple-300/80 text-xs mb-2">Module: {lesson.module_title}</p>
                     </div>
                   </div>
@@ -385,6 +515,32 @@ function Dashboard() {
             />
           </div>
         </div>
+      )}
+
+      {/* Quiz Generator Modal */}
+      {showQuizGenerator && (
+        <QuizGenerator
+          onClose={() => setShowQuizGenerator(false)}
+          onSuccess={() => {
+            setShowQuizGenerator(false);
+            fetchQuizzes();
+            fetchUsageStats();
+          }}
+          refreshQuizzes={fetchQuizzes}
+        />
+      )}
+
+      {/* Quiz Display Modal */}
+      {selectedQuiz && (
+        <QuizDisplay
+          quiz={selectedQuiz}
+          onClose={() => setSelectedQuiz(null)}
+          onDelete={() => {
+            setSelectedQuiz(null);
+            fetchQuizzes();
+            fetchUsageStats();
+          }}
+        />
       )}
 
       {selectedCourse && (
