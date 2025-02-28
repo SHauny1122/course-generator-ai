@@ -5,6 +5,8 @@ import LearnMore from './LearnMore';
 import CourseDemo from './CourseDemo';
 import '../styles/animations.css';
 import SEO from './SEO';
+import screenshot1 from '../assets/screenshots/Untitled design (8).png';
+import screenshot2 from '../assets/screenshots/Untitled design (7).png';
 
 const FeatureCard = ({ title, description, items, index }: { title: string; description: string; items: string[]; index: number }) => {
   return (
@@ -233,7 +235,7 @@ const LandingPage = () => {
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
             <div className="relative">
               <img 
-                src="/src/assets/screenshots/Untitled design (8).png" 
+                src={screenshot1}
                 alt="Course Generation Interface" 
                 className="rounded-xl shadow-2xl w-full transform transition duration-500 hover:scale-105"
               />
@@ -249,7 +251,7 @@ const LandingPage = () => {
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-1000"></div>
             <div className="relative">
               <img 
-                src="/src/assets/screenshots/Untitled design (7).png" 
+                src={screenshot2}
                 alt="Course Dashboard" 
                 className="rounded-xl shadow-2xl w-full transform transition duration-500 hover:scale-105"
               />
