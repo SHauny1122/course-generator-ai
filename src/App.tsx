@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import LearnMore from './components/LearnMore';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import Profile from './components/Profile';
 import Footer from './components/Footer';
 import { supabase } from './lib/supabaseClient';
 import { Session } from '@supabase/supabase-js';
@@ -61,6 +62,16 @@ function App() {
               element={
                 session ? (
                   <Dashboard key={session.user.id} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                session ? (
+                  <Profile />
                 ) : (
                   <Navigate to="/" replace />
                 )

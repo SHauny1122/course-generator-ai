@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import CourseGenerator from './CourseGenerator';
 import QuizGenerator from './QuizGenerator';
+import LessonGenerator from './LessonGenerator';
 import QuizDisplay from './QuizDisplay';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -71,6 +73,10 @@ function Dashboard() {
     lessons_used: 0,
     tier: 'free'
   });
+  const [showLessonGenerator, setShowLessonGenerator] = useState(false);
+  const [lessonToGenerate, setLessonToGenerate] = useState<{moduleTitle: string, lessonTitle: string} | null>(null);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCourses();
@@ -195,6 +201,12 @@ function Dashboard() {
               Generate Quiz
             </button>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate('/profile')}
+                className="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
+              >
+                Profile
+              </button>
               <button
                 onClick={handleSignOut}
                 className="px-3 py-1 text-sm text-gray-400 hover:text-white transition-colors"
@@ -520,10 +532,31 @@ function Dashboard() {
                   <div className="space-y-4">
                     {module.lessons.map((lesson, lessonIndex) => (
                       <div key={lessonIndex} className="bg-black/20 rounded-lg p-4">
-                        <h4 className="text-lg font-semibold mb-2">{lesson.lesson_title}</h4>
-                        {lesson.description && (
-                          <p className="text-gray-300">{lesson.description}</p>
-                        )}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-lg font-semibold mb-2">{lesson.lesson_title}</h4>
+                            {lesson.description && (
+                              <p className="text-gray-300">{lesson.description}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setLessonToGenerate({
+                                moduleTitle: module.title,
+                                lessonTitle: lesson.lesson_title
+                              });
+                              setShowLessonGenerator(true);
+                            }}
+                            className="px-3 py-1.5 rounded text-white font-medium transition-all duration-300
+                              bg-gradient-to-r from-purple-600 to-blue-600
+                              hover:from-purple-500 hover:to-blue-400
+                              shadow-[0_0_10px_rgba(147,51,234,0.3)]
+                              hover:shadow-[0_0_20px_rgba(147,51,234,0.5)]
+                              text-xs"
+                          >
+                            Generate Lesson
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -596,6 +629,18 @@ function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+      {/* Lesson Generator Modal */}
+      {showLessonGenerator && lessonToGenerate && (
+        <LessonGenerator
+          moduleTitle={lessonToGenerate.moduleTitle}
+          lessonTitle={lessonToGenerate.lessonTitle}
+          onClose={() => {
+            setShowLessonGenerator(false);
+            setLessonToGenerate(null);
+          }}
+          refreshLessons={fetchLessons}
+        />
       )}
     </div>
   );
