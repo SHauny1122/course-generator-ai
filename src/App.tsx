@@ -4,6 +4,8 @@ import LandingPage from './components/LandingPage';
 import Dashboard from './components/Dashboard';
 import LearnMore from './components/LearnMore';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfService from './components/TermsOfService';
+import CookiePolicy from './components/CookiePolicy';
 import Profile from './components/Profile';
 import Footer from './components/Footer';
 import { supabase } from './lib/supabaseClient';
@@ -79,6 +81,8 @@ function App() {
             />
             <Route path="/learn-more" element={<LearnMore onBack={() => {}} />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </RoutesComponent>
           <Footer />

@@ -45,25 +45,25 @@ const LandingPage = () => {
 
   const features = [
     {
-      title: "GPT-4 Powered Course Generation",
-      description: "Create professional courses instantly using OpenAI's most advanced AI. Perfect for any subject or skill level.",
+      title: "GPT-4 Powered Mini-Course Generation",
+      description: "Create professional mini-courses and guides instantly using OpenAI's most advanced AI. Perfect for any subject or skill level.",
       items: [
-        "Create courses in minutes",
+        "Create mini-courses in minutes",
         "AI-powered content generation",
         "Perfect for any subject or skill level"
       ]
     },
     {
-      title: "Smart Lesson Planning",
-      description: "Generate detailed, engaging lessons automatically. Save hours of preparation time with AI-powered content.",
+      title: "Smart Knowledge Sharing",
+      description: "Generate detailed, engaging content automatically. Save hours of preparation time with AI-powered content.",
       items: [
-        "Automated lesson planning",
-        "Engaging lessons for students",
+        "Automated content generation",
+        "Engaging content for learners",
         "Save hours of preparation time"
       ]
     },
     {
-      title: "Interactive Quiz Creation",
+      title: "Interactive Content Creation",
       description: "Create engaging quizzes to test knowledge retention. Our AI ensures questions are relevant and challenging.",
       items: [
         "Create quizzes in minutes",
@@ -78,7 +78,7 @@ const LandingPage = () => {
       tier: "Free",
       price: "$0",
       features: [
-        "5 courses",
+        "5 mini-courses",
         "15 lessons",
         "10 quizzes",
         "5,000 tokens for AI generation",
@@ -93,7 +93,7 @@ const LandingPage = () => {
       tier: "Basic",
       price: "$9.99",
       features: [
-        "15 courses",
+        "15 mini-courses",
         "45 lessons",
         "30 quizzes",
         "15,000 tokens for AI generation",
@@ -108,7 +108,7 @@ const LandingPage = () => {
       tier: "Pro",
       price: "$19.99",
       features: [
-        "100 courses",
+        "100 mini-courses",
         "500 lessons",
         "300 quizzes",
         "Unlimited AI generation",
@@ -207,12 +207,12 @@ const LandingPage = () => {
                   className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
-                    AI Course Creation
+                    AI Mini-Course Generation
                   </h3>
                   <div className="text-gray-400 space-y-2">
-                    <p>Generate complete mini-courses using GPT-4 AI technology</p>
-                    <p className="text-sm text-purple-300">• Course outline in 30 seconds</p>
-                    <p className="text-sm text-purple-300">• Full content in seconds</p>
+                    <p>Generate mini-courses and guides on any topic using GPT-4 AI technology</p>
+                    <p className="text-sm text-purple-300">• From hobbies to professional skills</p>
+                    <p className="text-sm text-purple-300">• Ready in 30 seconds</p>
                   </div>
                 </motion.div>
 
@@ -222,12 +222,12 @@ const LandingPage = () => {
                   className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
-                    Smart Learning
+                    Smart Knowledge Sharing
                   </h3>
                   <div className="text-gray-400 space-y-2">
-                    <p>Intelligent content structuring for optimal learning</p>
-                    <p className="text-sm text-purple-300">• Auto-generated quizzes</p>
-                    <p className="text-sm text-purple-300">• Learning path optimization</p>
+                    <p>AI-powered content organization for perfect understanding</p>
+                    <p className="text-sm text-purple-300">• Interactive knowledge checks</p>
+                    <p className="text-sm text-purple-300">• Optimized learning paths</p>
                   </div>
                 </motion.div>
 
@@ -240,9 +240,9 @@ const LandingPage = () => {
                     Rapid Results
                   </h3>
                   <div className="text-gray-400 space-y-2">
-                    <p>Transform your expertise into courses instantly</p>
-                    <p className="text-sm text-purple-300">• 100% customizable content</p>
-                    <p className="text-sm text-purple-300">• Export-ready formats</p>
+                    <p>Turn your knowledge into structured content instantly</p>
+                    <p className="text-sm text-purple-300">• Fully customizable guides</p>
+                    <p className="text-sm text-purple-300">• Share-ready formats</p>
                   </div>
                 </motion.div>
 
@@ -255,9 +255,9 @@ const LandingPage = () => {
                     AI Efficiency
                   </h3>
                   <div className="text-gray-400 space-y-2">
-                    <p>Powered by advanced GPT-4 technology</p>
-                    <p className="text-sm text-purple-300">• 24/7 course generation</p>
-                    <p className="text-sm text-purple-300">• Continuous AI updates</p>
+                    <p>Create detailed content on any subject with GPT-4</p>
+                    <p className="text-sm text-purple-300">• 24/7 content generation</p>
+                    <p className="text-sm text-purple-300">• Always up-to-date AI</p>
                   </div>
                 </motion.div>
               </motion.div>
@@ -284,7 +284,7 @@ const LandingPage = () => {
                   Features that empower you
                 </h2>
                 <p className="text-xl text-gray-400">
-                  Everything you need to create professional courses with ease
+                  Everything you need to create professional mini-courses with ease
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -316,7 +316,7 @@ const LandingPage = () => {
                   Powerful Course Creation Tools
                 </h2>
                 <p className="text-xl text-gray-400">
-                  Generate professional courses and lessons with our intuitive interface
+                  Generate professional mini-courses and lessons with our intuitive interface
                 </p>
               </div>
 
@@ -363,7 +363,7 @@ const LandingPage = () => {
                   See it in action
                 </h2>
                 <p className="text-xl text-gray-400">
-                  Watch how easy it is to create a course with our AI
+                  Watch how easy it is to create a mini-course with our AI
                 </p>
               </div>
               <CourseDemo />
