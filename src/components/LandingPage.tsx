@@ -193,20 +193,22 @@ const LandingPage = () => {
             </div>
 
             {/* Bottom section - Stats and Image */}
-            <div className="flex justify-between items-start gap-8">
+            <div className="flex flex-col lg:flex-row justify-between items-center gap-8 px-4 lg:px-0">
               {/* Stats Section */}
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="grid grid-cols-2 gap-8 w-[550px] [perspective:1000px] [transform-style:preserve-3d]"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 w-full lg:w-[550px] [perspective:1000px] [transform-style:preserve-3d]"
               >
                 <motion.div 
                   initial={{ rotateX: 10, rotateY: -10 }}
-                  whileHover={{ rotateX: 0, rotateY: 0, scale: 1.05 }}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-purple-500/50 transition-all duration-300 transform-gpu shadow-xl hover:shadow-purple-500/20"
+                  animate={{ rotateX: 0, rotateY: 0 }}
+                  className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
-                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">AI Course Creation</div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+                    AI Course Creation
+                  </h3>
                   <div className="text-gray-400 space-y-2">
                     <p>Generate complete mini-courses using GPT-4 AI technology</p>
                     <p className="text-sm text-purple-300">• Course outline in 30 seconds</p>
@@ -216,10 +218,12 @@ const LandingPage = () => {
 
                 <motion.div 
                   initial={{ rotateX: 10, rotateY: 10 }}
-                  whileHover={{ rotateX: 0, rotateY: 0, scale: 1.05 }}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-purple-500/50 transition-all duration-300 transform-gpu shadow-xl hover:shadow-purple-500/20"
+                  animate={{ rotateX: 0, rotateY: 0 }}
+                  className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
-                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">Smart Learning</div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+                    Smart Learning
+                  </h3>
                   <div className="text-gray-400 space-y-2">
                     <p>Intelligent content structuring for optimal learning</p>
                     <p className="text-sm text-purple-300">• Auto-generated quizzes</p>
@@ -229,10 +233,12 @@ const LandingPage = () => {
 
                 <motion.div 
                   initial={{ rotateX: -10, rotateY: -10 }}
-                  whileHover={{ rotateX: 0, rotateY: 0, scale: 1.05 }}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-purple-500/50 transition-all duration-300 transform-gpu shadow-xl hover:shadow-purple-500/20"
+                  animate={{ rotateX: 0, rotateY: 0 }}
+                  className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
-                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">Rapid Results</div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+                    Rapid Results
+                  </h3>
                   <div className="text-gray-400 space-y-2">
                     <p>Transform your expertise into courses instantly</p>
                     <p className="text-sm text-purple-300">• 100% customizable content</p>
@@ -242,10 +248,12 @@ const LandingPage = () => {
 
                 <motion.div 
                   initial={{ rotateX: -10, rotateY: 10 }}
-                  whileHover={{ rotateX: 0, rotateY: 0, scale: 1.05 }}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-purple-500/50 transition-all duration-300 transform-gpu shadow-xl hover:shadow-purple-500/20"
+                  animate={{ rotateX: 0, rotateY: 0 }}
+                  className="bg-[#1E293B] p-6 rounded-xl border border-purple-500/30"
                 >
-                  <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-3">AI Efficiency</div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
+                    AI Efficiency
+                  </h3>
                   <div className="text-gray-400 space-y-2">
                     <p>Powered by advanced GPT-4 technology</p>
                     <p className="text-sm text-purple-300">• 24/7 course generation</p>
@@ -259,7 +267,7 @@ const LandingPage = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 }}
-                className="w-[500px]"
+                className="w-full lg:w-[500px]"
               >
                 <img 
                   src={workspaceImage}
@@ -279,7 +287,6 @@ const LandingPage = () => {
                   Everything you need to create professional courses with ease
                 </p>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {features.map((feature, index) => (
                   <FeatureCard
