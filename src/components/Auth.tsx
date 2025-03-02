@@ -96,16 +96,18 @@ export default function Auth({ onBack, onClose, selectedPlan }: AuthProps) {
     setLoading(true);
     setError(null);
     try {
-      // Just start the OAuth flow - this will redirect to Google
+      // Configure OAuth with specific options for Google
       await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
-          redirectTo: `${window.location.origin}/dashboard` // Redirect to dashboard after OAuth
+          redirectTo: `${window.location.origin}/dashboard`,
+          skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
         }
       });
-      
-      // No need for subscription creation here - we'll do it in Dashboard component
-      // when the user first loads it after OAuth redirect
       
     } catch (error) {
       console.error('OAuth error:', error);
