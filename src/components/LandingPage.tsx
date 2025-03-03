@@ -212,6 +212,24 @@ const LandingPage = () => {
                 </motion.div>
               </div>
 
+              {/* Demo Video Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="w-full max-w-4xl mx-auto mt-8 mb-16 px-4 sm:px-6 lg:px-8"
+              >
+                <div className="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-2xl bg-[#1E293B] border border-purple-500/20">
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full"
+                    src="https://www.youtube.com/embed/yi4cJfgcfK0"
+                    title="AI Mini-Course Generator Demo"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+
               {/* Bottom section - Stats and Image */}
               <div className="flex flex-col lg:flex-row justify-between items-center gap-8 px-4 lg:px-0">
                 {/* Stats Section */}
