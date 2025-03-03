@@ -45,30 +45,39 @@ const LandingPage = () => {
 
   const features = [
     {
-      title: "GPT-4 Powered Mini-Course Generation",
-      description: "Create professional mini-courses and guides instantly using OpenAI's most advanced AI. Perfect for any subject or skill level.",
+      title: "AI Mini-Course Generation",
+      description: "Generate mini-courses and guides on any topic using our powerful AI technology. The fastest way to create teachable content.",
       items: [
-        "Create mini-courses in minutes",
-        "AI-powered content generation",
-        "Perfect for any subject or skill level"
+        "From hobbies to professional skills",
+        "Ready in 30 seconds",
+        "Quick course generator for any topic"
       ]
     },
     {
       title: "Smart Knowledge Sharing",
-      description: "Generate detailed, engaging content automatically. Save hours of preparation time with AI-powered content.",
+      description: "AI-powered content organization for perfect understanding. Create teachable courses that engage your audience.",
       items: [
-        "Automated content generation",
-        "Engaging content for learners",
-        "Save hours of preparation time"
+        "Interactive knowledge checks",
+        "Optimized learning paths",
+        "Teachable content structure"
       ]
     },
     {
-      title: "Interactive Content Creation",
-      description: "Create engaging quizzes to test knowledge retention. Our AI ensures questions are relevant and challenging.",
+      title: "Rapid Results",
+      description: "Turn your knowledge into structured, teachable content instantly. Our quick course creator saves you hours of work.",
       items: [
-        "Create quizzes in minutes",
-        "AI-powered question generation",
-        "Relevant and challenging questions"
+        "Fully customizable guides",
+        "Share-ready formats",
+        "Instant mini-course creation"
+      ]
+    },
+    {
+      title: "AI Efficiency",
+      description: "Create detailed content on any subject with our smart AI course generator. Always up-to-date and effective.",
+      items: [
+        "24/7 content generation",
+        "Always up-to-date AI",
+        "Quick course building tools"
       ]
     }
   ];
@@ -160,7 +169,7 @@ const LandingPage = () => {
                 transition={{ delay: 0.1 }}
                 className="text-xl text-gray-400 mb-8"
               >
-                Transform your expertise into engaging mini-courses in minutes with our AI-powered course generator
+                Transform your expertise into engaging mini-courses in minutes with our quick course generator - the smart way to create teachable content
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -287,7 +296,7 @@ const LandingPage = () => {
                   Everything you need to create professional mini-courses with ease
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
                 {features.map((feature, index) => (
                   <FeatureCard
                     key={index}

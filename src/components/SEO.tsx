@@ -8,8 +8,8 @@ interface SEOProps {
 }
 
 const SEO = ({ 
-  title = "Course Generator AI - Create Professional Courses with GPT-4",
-  description = "Transform your expertise into professional courses instantly with our GPT-4 powered AI. Create engaging lessons and quizzes effortlessly. Start free today!",
+  title = "AI Mini Course Generator - Create Professional Courses Quickly",
+  description = "Transform your expertise into engaging mini-courses in minutes. Quick course generator with smart AI technology. Create teachable content effortlessly. Start free today!",
   image = "https://www.coursegeneratorai.online/og-image.jpg",
   url = "https://www.coursegeneratorai.online"
 }: SEOProps) => {
@@ -37,7 +37,7 @@ const SEO = ({
     updateCanonicalTag(url);
     
     // Add keywords
-    updateMetaTag('keywords', 'course generator, AI course creator, GPT-4 education, online course builder, lesson planner, quiz generator');
+    updateMetaTag('keywords', 'AI mini course generator, teachable AI course creator, quick course generator, professional mini courses, course builder, mini course creator, online course maker, teachable content creator, quick lesson planner, interactive course builder, AI teaching assistant, course creation tool, educational content generator, instant course creator, rapid course development, smart content generator, mini course platform, course automation tool, knowledge sharing platform, interactive learning system');
   }, [title, description, image, url]);
   
   return null;
