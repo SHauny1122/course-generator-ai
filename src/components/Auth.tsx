@@ -96,8 +96,7 @@ export default function Auth({ onBack, onClose, selectedPlan }: AuthProps) {
     setLoading(true);
     setError(null);
     try {
-      // Configure OAuth with specific options for Google
-      await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider,
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
@@ -108,6 +107,38 @@ export default function Auth({ onBack, onClose, selectedPlan }: AuthProps) {
           }
         }
       });
+
+      // If we got user data back, try to create a subscription
+      if (data?.user?.id) {
+        try {
+          const { error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .insert([
+              {
+                user_id: data.user.id,
+                tier: 'free',
+                courses_used: 0,
+                quizzes_used: 0,
+                tokens_used: 0,
+                active: true,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+            ])
+            .select()
+            .single();
+
+          if (subscriptionError) {
+            console.error('Error creating subscription:', subscriptionError);
+            // Don't throw - subscription will be created on dashboard if needed
+          }
+        } catch (subError) {
+          console.error('Subscription creation error:', subError);
+          // Don't throw - subscription will be created on dashboard if needed
+        }
+      }
+      
+      if (error) throw error;
       
     } catch (error) {
       console.error('OAuth error:', error);
