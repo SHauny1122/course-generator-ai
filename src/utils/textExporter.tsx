@@ -1,3 +1,5 @@
+import React from 'react';
+
 export const exportToText = (content: string, title: string) => {
   try {
     if (!content || !title) {

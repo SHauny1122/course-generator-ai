@@ -5,6 +5,7 @@ import LearnMore from './LearnMore';
 import CourseDemo from './CourseDemo';
 import '../styles/animations.css';
 import SEO from './SEO';
+import { trackTwitterEvent } from '../utils/analytics';
 import screenshot1 from '../assets/screenshots/Untitled design (8).png';
 import screenshot2 from '../assets/screenshots/Untitled design (7).png';
 import workspaceImage from '../assets/images/jonathan-borba-bI7BzgIsmzg-unsplash.jpg';
@@ -40,6 +41,7 @@ const LandingPage = () => {
   const [showLearnMore, setShowLearnMore] = useState(false);
 
   const handlePricingClick = () => {
+    trackTwitterEvent();
     setShowLearnMore(true);
   };
 
@@ -96,7 +98,10 @@ const LandingPage = () => {
       ],
       popular: false,
       actionText: "Start Free",
-      onAction: () => setShowAuth(true)
+      onAction: () => {
+        trackTwitterEvent();
+        setShowAuth(true);
+      }
     },
     {
       tier: "Basic",
@@ -149,8 +154,14 @@ const LandingPage = () => {
           <span className="text-xl font-bold">Course Generator</span>
           <div className="flex items-center gap-4">
             <button onClick={handlePricingClick} className="text-gray-300 hover:text-white">Pricing</button>
-            <button onClick={() => setShowAuth(true)} className="text-gray-300 hover:text-white border border-purple-500/20 px-4 py-2 rounded-full">Login</button>
-            <button onClick={() => setShowAuth(true)} className="bg-purple-600 text-white px-4 py-2 rounded-full">Get Started Free</button>
+            <button onClick={() => {
+              trackTwitterEvent();
+              setShowAuth(true);
+            }} className="text-gray-300 hover:text-white border border-purple-500/20 px-4 py-2 rounded-full">Login</button>
+            <button onClick={() => {
+              trackTwitterEvent();
+              setShowAuth(true);
+            }} className="bg-purple-600 text-white px-4 py-2 rounded-full">Get Started Free</button>
           </div>
         </div>
       </nav>
@@ -189,7 +200,10 @@ const LandingPage = () => {
                   className="flex flex-col sm:flex-row gap-4 justify-center"
                 >
                   <button
-                    onClick={() => setShowAuth(true)}
+                    onClick={() => {
+                      trackTwitterEvent();
+                      setShowAuth(true);
+                    }}
                     className="px-8 py-4 rounded-full text-white font-medium transition-all duration-300
                       bg-gradient-to-r from-purple-600 to-blue-600
                       hover:from-purple-500 hover:to-blue-500
